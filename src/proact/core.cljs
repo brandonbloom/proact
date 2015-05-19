@@ -22,28 +22,20 @@
 
 
 (defn todo-item [{{:keys [completed? editing?] :as todo} :data, :as widget}]
-  {:html/tag "li"
-   :html/attributes {"className" (classes {"completed" completed?
-                                           "editing" editing?})}
-   :children [{:html/tag "div"
-               :html/attributes {"className" "view"}
-               :children [{:html/tag "input"
-                           ;XXX onChange
-                           :html/attributes {"className" "toggle"
-                                             "type" "checkbox"
-                                             "checked" completed?}}
-                          {:html/tag "label"
-                           ;XXX onDoubleClick
-                           :text (:text todo)}
-                          {:html/tag "button"
-                           ;XXX onClick
-                           :html/attributes {"className" "destroy"}}]}
-              {:html/tag "input"
-               ;XXX ref editField
-               ;XXX onBlur, onChange, onKeyDown
-               :html/attributes {"className" "edit"
-                                 ;XXX "value" this.state.editText
-                                 }}]})
+  (html/li {"className" (classes {"completed" completed?
+                                  "editing" editing?})}
+    (html/div {"className" "view"}
+      (html/input {"className" "toggle"
+                   "type" "checkbox"
+                   ;XXX onChange
+                   "checked" completed?})
+      (html/label {} (:text todo)) ;XXX onDoubleClick
+      (html/button {"className" "destroy"})) ;XXX onClick
+    ;;XXX ref editField
+    (html/input {"className" "edit"
+                       ;XXX "value" this.state.editText
+                       ;XXX onBlur, onChange, onKeyDown
+                       })))
 
 (defn todo-footer [{{:keys [active completed showing]} :data :as widget}]
   ;XXX use completed
@@ -64,42 +56,30 @@
                             true)]
                 {:template todo-item
                  :key id
-                 :data todo
                  ; onToggle, onDestroy, onEdit, editing, onSave, onCancel
-                 })
+                 :data todo})
         completed (count (filter :completed? todos))
         active (- (count todos) completed)
         footer {:template todo-footer
+                ;XXX onClearCompleted
                 :data {:active active
                        :completed completed
-                       :showing showing}
-                ;XXX onClearCompleted
-                }
+                       :showing showing}}
         main (when (seq todos)
-               {:html/tag "section"
-                :html/attributes {"id" "main"}
-                :children [{:html/tag "input"
-                            :html/attributes {"id" "toggle-all"
-                                              "type" "checkbox"
-                                              "checked" (zero? active)}
-                            ; onChange, checked
-                            }
-                           {:html/tag "ul"
-                            :html/attributes {"id" "todo-list"}
-                            :children (vec items)}]})
-        input {:html/tag "input"
-               :html/attributes {"id" "new-todo"
-                                 "placeholder" "What needs to be done?"
-                                 "autofocus" true}
-               ; onKeyDown
-               }]
-    {:html/tag "div"
-     :children [{:html/tag "header"
-                 :html/attributes {"id" "header"}
-                 :children [{:html/tag "h1"
-                             :text "todos"}
-                            input]}
-                main
-                footer]}))
+               (html/section {"id" "main"}
+                 (html/input {"id" "toggle-all"
+                              "type" "checkbox"
+                              ;;XXX onChange, checked
+                              "checked" (zero? active)})
+                 (html/ul {"id" "todo-list"} items)))
+        input (html/input {"id" "new-todo"
+                           "placeholder" "What needs to be done?"
+                           "autofocus" true})] ;XXX onKeyDown
+    (html/div {}
+      (html/header {"id" "header"}
+        (html/h1 {} "todos")
+        input)
+      main
+      footer)))
 
 (render-root "todoapp" (app {}))
