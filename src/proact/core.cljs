@@ -1,6 +1,7 @@
 (ns ^:figwheel-always proact.core
   (:require [clojure.string :as str]
-            [proact.render :refer [render-root]]))
+            [proact.render :refer [render-root]]
+            [proact.html :as html]))
 
 (enable-console-print!)
 
@@ -46,28 +47,15 @@
                                  ;XXX "value" this.state.editText
                                  }}]})
 
-(defn todo-footer [widget]
-  {:html/tag "footer"
-   :html/attributes {"id" "footer"}
-   :children [{:html/tag "span"
-               :html/attributes {"id" "todo-count"}
-               :children [{:html/tag "strong"
-                           :text "this.props.count"}
-                          (str "{activeTodoWord}" " left")]}
-              {:html/tag "ul"
-               :html/attributes {"id" "filters"}
-               :children [{:html/tag "li"
-                           :children [{:html/tag "a"
-                                       :html/attributes {"href" "#/"}
-                                       :text "All"}]}
-                          {:html/tag "li"
-                           :children [{:html/tag "a"
-                                       :html/attributes {"href" "#/active"}
-                                       :text "Active"}]}
-                          {:html/tag "li"
-                           :children [{:html/tag "a"
-                                       :html/attributes {"href" "#/completed"}
-                                       :text "Completed"}]}]}]})
+(defn todo-footer [{{:keys [active completed showing]} :data :as widget}]
+  ;XXX use completed
+  (html/footer {"id" "footer"}
+    (html/span {"id" "todo-count"}
+      (html/strong {} (str active)) (str showing " left"))
+    (html/ul {"id" "filters"}
+      (html/li {} (html/a {"href" "#/"} "All"))
+      (html/li {} (html/a {"href" "#/active"} "Active"))
+      (html/li {} (html/a {"href" "#/completed"} "Completed")))))
 
 (defn app [widget]
   (let [showing :active
@@ -84,7 +72,10 @@
         completed (count (filter :completed? todos))
         active (- (count todos) completed)
         footer {:template todo-footer
-                ; count, completedCount, nowShowing, onClearCompleted
+                :data {:active active
+                       :completed completed
+                       :showing showing}
+                ;XXX onClearCompleted
                 }
         main (when (seq todos)
                {:html/tag "section"
