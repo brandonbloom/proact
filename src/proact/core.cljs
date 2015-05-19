@@ -1,7 +1,7 @@
 (ns ^:figwheel-always proact.core
-  (:require [clojure.string :as str]
-            [proact.render :refer [render-root]]
-            [proact.html :as html]))
+  (:require [proact.render :refer [render-root]]
+            [proact.html :as html]
+            [proact.html-util :refer [classes link-to]]))
 
 (enable-console-print!)
 
@@ -19,13 +19,11 @@
   ;; (swap! app-state update-in [:__figwheel_counter] inc)
 )
 
-(defn class-names [m]
-  (str/join (for [[k v] m :when v] k)))
 
 
 (defn todo-item [{{:keys [completed? editing?] :as todo} :data, :as widget}]
   {:html/tag "li"
-   :html/attributes {"class" (class-names {"completed" completed?
+   :html/attributes {"className" (classes {"completed" completed?
                                            "editing" editing?})}
    :children [{:html/tag "div"
                :html/attributes {"className" "view"}
@@ -53,9 +51,9 @@
     (html/span {"id" "todo-count"}
       (html/strong {} (str active)) (str showing " left"))
     (html/ul {"id" "filters"}
-      (html/li {} (html/a {"href" "#/"} "All"))
-      (html/li {} (html/a {"href" "#/active"} "Active"))
-      (html/li {} (html/a {"href" "#/completed"} "Completed")))))
+      (html/li {} (link-to "#/" "All"))
+      (html/li {} (link-to "#/active" "Active"))
+      (html/li {} (link-to "#/completed" "Completed")))))
 
 (defn app [widget]
   (let [showing :active
