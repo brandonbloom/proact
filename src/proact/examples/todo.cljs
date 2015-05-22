@@ -37,7 +37,7 @@
       (html/li {} (link-to "#/completed" "Completed")))))
 
 (defn app [widget]
-  (let [showing :all
+  (let [showing :all ;XXX state
         items (for [{:keys [id completed?] :as todo} todos
                     :when (case showing
                             :active (not completed?)
