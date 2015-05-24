@@ -4,12 +4,11 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
 
-  :dependencies [[org.clojure/clojure "1.6.0"]
-                 [org.clojure/clojurescript "0.0-3211"]
-                 [org.clojure/core.async "0.1.346.0-17112a-alpha"]]
+  :dependencies [[org.clojure/clojure "1.7.0-beta3"]
+                 [org.clojure/clojurescript "0.0-3269"]]
 
   :plugins [[lein-cljsbuild "1.0.5"]
-            [lein-figwheel "0.3.1"]]
+            [lein-figwheel "0.3.3"]]
 
   :source-paths ["src"]
 
@@ -25,6 +24,7 @@
                          :asset-path "js/compiled/out"
                          :output-to "resources/public/js/compiled/proact.js"
                          :output-dir "resources/public/js/compiled/out"
+                         :source-maps true
                          :source-map-timestamp true }}
              {:id "min"
               :source-paths ["src"]
