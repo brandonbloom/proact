@@ -1,97 +1,154 @@
-(ns proact.render)
+(ns proact.render
+  (:require [cljs.pprint :refer [pprint]] ;XXX
+            [proact.util :refer [flat]]))
 
-;;TODO create the widget tree (dag? graph?) here
-;; when mounting things, attach listeners:
-;;    all at root, some local (like submit)
-(defonce state (atom {:roots {} :mounts {}}))
+(defonce state (atom {:roots {} :graph {}}))
 
-(defn flat [xs]
-  (lazy-seq
-    (when-first [x xs]
-      (let [xs* (flat (next xs))]
-        (cond
-          (nil? x) xs*
-          (seq? x) (concat (flat x) xs*)
-          :else (cons x xs*))))))
-
+(def ^:dynamic *before*)
+(def ^:dynamic *after*)
+(def ^:dynamic *moved*)
+(def ^:dynamic *detatched*)
+(def ^:dynamic *path*)
 (def ^:dynamic *parent*)
 (def ^:dynamic *index*)
 
-(declare render)
+(declare render-widget)
 
 (defn get-node []
   (aget (.-childNodes *parent*) *index*))
 
-(defn remove-node []
-  ;;TODO track this
-  (.removeChild (get-node)))
+(defn detatch []
+  (println "detatch")
+  (let [node (get-node)]
+    (set! *detatched* (conj *detatched* node))
+    (.removeChild *parent* node)
+    nil))
 
-(defn replace-node [node]
-  ;;TODO track this
-  (.replaceChild (get-node) node))
+(defn insert [inserted]
+  (println "insert")
+  (let [neighbor (get-node)]
+    (set! *detatched* (disj *detatched* inserted))
+    (set! *moved* (conj *moved* inserted))
+    (.insertBefore *parent* inserted neighbor)
+    inserted))
 
-(defn move-mode [node]
-  ;;TODO track this
-  (.insertBefore *parent* node (get-node)))
+(defn substitute [replacement]
+  (println "substitute")
+  (let [existing (get-node)]
+    (set! *detatched* (-> *detatched* (conj existing) (disj replacement)))
+    (set! *moved* (conj *moved* replacement))
+    (.replaceChild existing replacement)
+    replacement))
 
-(defn create-text [text]
+(defn create-text [{:keys [text]}]
   (.createTextNode js/document text))
 
 (defn patch-text [before after]
   (if (string? before)
     (let [node (get-node)]
-      (.replaceData node 0 (.-length node) after)
+      (.replaceData node 0 (.-length node) (:text after))
       node)
-    (replace-node (create-text after))))
+    (substitute (create-text after))))
+
+(defn create-children [parent children]
+  (println "create-children")
+  (binding [*parent* parent
+            *index* 0]
+    (println children)
+    (doseq [child children]
+      (.appendChild parent (render-widget child))
+      (set! *index* (inc *index*)))))
 
 (defn create-element [widget]
+  (println "create" (:html/tag widget) (count (:children widget)))
   (let [el (.createElement js/document (:html/tag widget))]
     (doseq [[k v] (:html/attributes widget)]
       (aset el k v))
-    (binding [*parent* el
-              *index* 0]
-      (doseq [child (-> widget :children flat)]
-        (.appendChild el (render child))
-        (set! *index* (inc *index*))))
+    (create-children el (:children widget))
     el))
+
+(defn patch-children [before after]
+  ;;TODO compare against before
+  (doseq [child after]
+    (insert (render-widget child))
+    (set! *index* (inc *index*)))
+  (let [nodes (.-childNodes *parent*)]
+    (println "> " (.-length nodes) *index*)
+    (while (> (.-length nodes) *index*)
+      (detatch))))
 
 (defn patch-element [before after]
   (if (= (:html/tag before) (:html/tag after))
     (do
       ;;TODO patch attributes
-      ;;TODO draw each child, calling move-node for each
-      ;;TODO keep track of all moved & removed nodes
-      (let [nodes (.-childNodes *parent*)
-            n 10000] ;XXX after's number of dom children
-        (while (> (.-length nodes) n)
-          (remove-node))))
-    (replace-node (create-element after))))
+      (patch-children before after)
+      (get-node))
+    (substitute (create-element after))))
 
 (defn put [widget create patch]
-  (if-let [existing nil] ;TODO lookup by id & check not-moved
-    (patch existing widget) ;XXX use *index*, do insertBefore, handle moves
+  (if-let [existing nil] ;TODO lookup by id & check not in *moved*
+    (patch existing widget)
     (create widget)))
 
-(defn put-text [text]
-  (put text create-text patch-text))
+(defn put-text [widget]
+  (put widget create-text patch-text))
 
 (defn put-element [widget]
   (put widget create-element patch-element))
 
-(defn render [{tag :html/tag :keys [template text] :as widget}]
-  (cond
-    (nil? widget) nil
-    (string? widget) (put-text widget)
-    template (recur (template widget))
-    text (recur (-> widget (dissoc :text) (assoc :children [(str text)])))
-    tag (put-element widget)
-    :else (assert false (str "TODO: just recurse?" widget))))
+(defn normalize
+  ([widget]
+   (normalize [:proact/auto] widget))
+  ([subpath widget]
+   (cond
+     (nil? widget) (recur subpath {})
+     (string? widget)
+     ,,(recur subpath {:text widget})
+     (and (:html/tag widget) (:text widget))
+     ,,(recur subpath (-> widget
+                          (dissoc :text)
+                          (assoc :children [(str (:text widget))])))
+     :else
+     ,,(let [key (:key widget subpath)
+             id (:id widget {:context *path* :key key})
+             children (-> widget :children flat)
+             children (for [[i child] (map vector (range) children)
+                            :let [subpath (conj subpath [:proact/child i])]]
+                        (normalize subpath child))]
+         (-> widget (dissoc :key) (assoc :id id :children (vec children)))))))
+
+(defn render-widget [widget]
+  (println "render")
+  (loop [{:keys [template] :as widget} (normalize widget)]
+    (cond
+      template (recur (template widget))
+      (:text widget) (put-text widget)
+      (:html/tag widget) (put-element widget)
+      :else (assert false (str "TODO: just recurse to children?" widget)))))
 
 (defn render-root [id widget]
   (binding [*parent* (.getElementById js/document id)
-            *index* 0]
-    (while (pos? (alength (.-childNodes *parent*)))    ;XXX patch
-      (.removeChild *parent* (.-firstChild *parent*))) ;XXX patch
-    (.appendChild *parent* (render widget)) ;TODO: figure out how to leverage put-element
-    ;;TODO process moved/removed nodes
-    ))
+            *index* 0
+            *path* []]
+    (patch-children [] ;XXX get from root state
+                    [widget])))
+
+(defn release [node]
+  ;;TODO recursive cleanup, skip sub-trees in *moved*
+  (println node " was detatched"))
+
+;;; BEGIN Public Interface
+
+(defn render [roots]
+  (println "-----------------")
+  (let [{old-roots :roots, :keys [graph]} @state]
+    (binding [*before* graph
+              *after* graph
+              *moved* #{}
+              *detatched* #{}]
+      (doseq [[id widget] roots]
+        (render-root id widget))
+      ;;XXX detatch roots removed from old-roots to roots
+      (doseq [node *detatched*]
+        (release node))
+      (swap! state assoc :roots roots :graph *after*))))

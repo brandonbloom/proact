@@ -1,5 +1,5 @@
 (ns ^:figwheel-always proact.core
-  (:require [proact.render :refer [render-root]]
+  (:require [proact.render :refer [render]]
             [proact.examples.todo :as todo]))
 
 (enable-console-print!)
@@ -10,4 +10,4 @@
   ;; (swap! app-state update-in [:__figwheel_counter] inc)
 )
 
-(render-root "todoapp" (todo/app {}))
+(render {"todoapp" (todo/app {})})
