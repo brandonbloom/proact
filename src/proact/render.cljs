@@ -29,7 +29,9 @@
   (let [neighbor (get-node)]
     (set! *detatched* (disj *detatched* inserted))
     (set! *moved* (conj *moved* inserted))
-    (.insertBefore *parent* inserted neighbor)
+    (if neighbor
+      (.insertBefore *parent* inserted neighbor)
+      (.appendChild *parent* inserted))
     inserted))
 
 (defn substitute [replacement]
@@ -41,9 +43,11 @@
     replacement))
 
 (defn create-text [{:keys [text]}]
+  (println "create-text")
   (.createTextNode js/document text))
 
 (defn patch-text [before after]
+  (println "patch-text")
   (if (string? before)
     (let [node (get-node)]
       (.replaceData node 0 (.-length node) (:text after))
@@ -54,30 +58,35 @@
   (println "create-children")
   (binding [*parent* parent
             *index* 0]
-    (println children)
     (doseq [child children]
       (.appendChild parent (render-widget child))
       (set! *index* (inc *index*)))))
 
+(defn begin-children [widget]
+  (set! *after* (assoc-in *after* [(:id widget) :child-nodes] [])))
+
 (defn create-element [widget]
-  (println "create" (:html/tag widget) (count (:children widget)))
+  (println "create-element" (:html/tag widget) (count (:children widget)))
   (let [el (.createElement js/document (:html/tag widget))]
+    (begin-children widget)
     (doseq [[k v] (:html/attributes widget)]
       (aset el k v))
     (create-children el (:children widget))
     el))
 
 (defn patch-children [before after]
-  ;;TODO compare against before
-  (doseq [child after]
+  (println "patch-children")
+  ;;TODO compare against before's children
+  (begin-children after)
+  (doseq [child (:children after)]
     (insert (render-widget child))
     (set! *index* (inc *index*)))
   (let [nodes (.-childNodes *parent*)]
-    (println "> " (.-length nodes) *index*)
     (while (> (.-length nodes) *index*)
       (detatch))))
 
 (defn patch-element [before after]
+  (println "patch-element")
   (if (= (:html/tag before) (:html/tag after))
     (do
       ;;TODO patch attributes
@@ -85,15 +94,23 @@
       (get-node))
     (substitute (create-element after))))
 
-(defn put [widget create patch]
-  (if-let [existing nil] ;TODO lookup by id & check not in *moved*
-    (patch existing widget)
-    (create widget)))
+(defn put [{:keys [id] :as widget} create patch]
+  (println "put" id)
+  (let [node (if-let [existing (*before* id)]
+               (do (assert (not (*moved* id)))
+                   (if (= existing widget)
+                     (get-node)
+                     (patch existing widget)))
+               (create widget))]
+    (set! *after* (update-in *after* [id :child-nodes] conj node))
+    node))
 
 (defn put-text [widget]
+  (println "put-text")
   (put widget create-text patch-text))
 
 (defn put-element [widget]
+  (println "put-element")
   (put widget create-element patch-element))
 
 (defn normalize
@@ -117,21 +134,26 @@
                         (normalize subpath child))]
          (-> widget (dissoc :key) (assoc :id id :children (vec children)))))))
 
+(defn expand [widget]
+  (let [{:keys [template] :as widget} (normalize widget)]
+    (if template
+      (recur (template widget))
+      widget)))
+
 (defn render-widget [widget]
   (println "render")
-  (loop [{:keys [template] :as widget} (normalize widget)]
+  (let [expanded (expand widget)]
     (cond
-      template (recur (template widget))
-      (:text widget) (put-text widget)
-      (:html/tag widget) (put-element widget)
-      :else (assert false (str "TODO: just recurse to children?" widget)))))
+      (:text expanded) (put-text expanded)
+      (:html/tag expanded) (put-element expanded)
+      :else (assert false (str "TODO: just recurse to children?" expanded)))))
 
 (defn render-root [id widget]
   (binding [*parent* (.getElementById js/document id)
             *index* 0
-            *path* []]
-    (patch-children [] ;XXX get from root state
-                    [widget])))
+            *path* [id]]
+    (patch-children nil ;XXX get from root state
+                    {:id [:proact/root id] :children [widget]})))
 
 (defn release [node]
   ;;TODO recursive cleanup, skip sub-trees in *moved*

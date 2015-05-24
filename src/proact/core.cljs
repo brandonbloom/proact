@@ -1,5 +1,6 @@
 (ns ^:figwheel-always proact.core
-  (:require [proact.render :refer [render]]
+  (:require [cljs.pprint :refer [pprint]]
+            [proact.render :refer [render]]
             [proact.examples.todo :as todo]))
 
 (enable-console-print!)
@@ -10,4 +11,13 @@
   ;; (swap! app-state update-in [:__figwheel_counter] inc)
 )
 
-(render {"todoapp" (todo/app {})})
+;(render {"todoapp" (todo/app {})})
+
+(let [id (str (gensym))
+      el (.createElement js/document "div")]
+  (println id)
+  (aset el "id" id)
+  (.. js/document -body (appendChild el))
+  (render {id {:text "hello"}}))
+
+(pprint (:graph @proact.render/state))
