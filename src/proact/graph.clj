@@ -1,5 +1,6 @@
 (ns proact.graph
-  (:require [clojure.set :as set]))
+  (:require [clojure.set :as set]
+            [clojure.core.rrb-vector :as rrb]))
 
 (declare seqs->maps)
 
@@ -21,12 +22,15 @@
    (first (assign-ids [x] [])))
   ([xs path]
    (mapv (fn [i x]
-           (let [k (get-in x [:attributes :key] i)
-                 id (conj path [(:tag x) k])]
-             (-> x
-                 (update :attributes dissoc :key)
-                 (assoc :id id)
-                 (update :children assign-ids id))))
+           (let [tag (:tag x)
+                 k (get-in x [:attributes :key] i)
+                 id (conj path [tag k])
+                 x (assoc x :id id)]
+             (if (string? tag)
+               (-> x
+                   (update :attributes dissoc :key)
+                   (update :children assign-ids id))
+               x)))
          (range)
          xs)))
 
@@ -36,7 +40,10 @@
    (assert (some? id) (str "No id for node: " x))
    (assert (nil? (nodes id)) (str "Duplicate ID: " id))
    (reduce maps->nodes
-           (assoc nodes id (update x :children #(mapv :id %)))
+           (assoc nodes id
+                  (if (-> x :tag string?)
+                    (update x :children #(mapv :id %))
+                    x))
            (map #(assoc % :parent id) children))))
 
 (def empty-vdom {:mounts {} :nodes {} :mounted #{} :detatched #{}})
@@ -51,8 +58,19 @@
 (defn seqs->vdom [x]
   (-> x seqs->maps assign-ids maps->vdom))
 
+;;; Vector Utilities.
+
+(defn remove-at [v i]
+  (rrb/catvec (rrb/subvec v 0 i) (rrb/subvec v (inc i))))
+
+(defn remove-item [^clojure.lang.APersistentVector v x]
+  (remove-at v (.indexOf v x)))
+
+(defn insert [v i x]
+  (rrb/catvec (rrb/subvec v 0 i) [x] (rrb/subvec v i)))
+
 ;; This is a strange set of primitives to build diff out of, but they were
-;; chosen to map well on to imperative DOM manipulations.
+;; chosen to be atomic and map well on to imperative DOM manipulations.
 
 ;TODO trace all of these operations
 
@@ -78,12 +96,13 @@
         (update :detatched conj id))))
 
 (defn detatch [vdom id]
-  ;(let [n (get-in vdom [:nodes id])]
-  ;  (assert n (str "No such node id: " id))
-  ;  (assert (:parent n)
-  ;(update :detatched conj id)
-  vdom ;XXX
-  )
+  (let [{:keys [parent] :as n} (get-in vdom [:nodes id])]
+    (assert n (str "No such node id: " id))
+    (assert parent (str "No already detatched: " id))
+    (-> vdom
+        (update-in vdom [:nodes parent :children] remove-item id)
+        (update-in vdom [:nodes id] dissoc :parent)
+        (update vdom :detatched conj id))))
 
 (defn create-text [vdom id text]
   (assert (nil? (get-in vdom [:nodes id])) (str "Node already exists: " id))
@@ -112,19 +131,21 @@
           (str "Cannot set attributes of non-element node: " id))
   (update-in vdom [:nodes id :attributes] merge attributes))
 
-(defn append-child [vdom parent-id child-id] ;XXX just use insert-child ?
-  (prn "APPEND_CHILD")
-  vdom)
-
 (defn insert-child [vdom parent-id index child-id]
-  (prn "INSERT_CHILD")
-  vdom)
+  (let [n (get-in vdom [:nodes child-id])
+        vdom (if-let [p (:parent n)]
+               (update-in vdom [:nodes p :children] remove-item child-id)
+               vdom)]
+    (-> vdom
+        (assoc-in [:nodes child-id :parent] parent-id)
+        (update-in [:nodes parent-id :children] insert index child-id)
+        (update-in [:detatched] disj child-id))))
 
 (defn free [vdom id]
   (assert (get-in vdom [:detatched id])
           (str "Cannot free non-detatched node:" id))
   ((fn rec [vdom id]
-     ;;TODO trace frees (top-down or bottom-up?)
+     ;;TODO trace frees (top-down or bottom-up? or as an atomic set?)
      (reduce rec
              (update vdom :nodes dissoc id)
              (get-in vdom [:nodes id :children])))
@@ -132,17 +153,13 @@
 
 ;;;
 
-(declare patch-children)
-
 (defn update-text [vdom before {:keys [id text] :as after}]
   (if (= (:text before) text)
     vdom
     (set-text vdom id text)))
 
-(defn patch-children [vdom goal id]
-  (println "patch-children" (get-in goal [:nodes id]))
-  vdom ;XXX
-  )
+(defn detatch-last-child [vdom id]
+  (detatch vdom (peek (get-in vdom [:nodes id :children]))))
 
 (defn update-element [vdom goal before {:keys [id attributes] :as after}]
   (let [removed (set/difference (-> before :attributes keys set)
@@ -155,23 +172,20 @@
                             (assoc acc k val)))
                         nil
                         attributes)]
-    (patch-children vdom goal id)))
+    (set-attributes vdom id updated)))
 
 (defn update-node [vdom goal before {:keys [id tag] :as after}]
-  (println "update-node")
   (assert (= (:tag before) tag) (str "Cannot transmute node type for id " id))
   (if (= tag :text)
     (update-text vdom id before after)
     (update-element vdom goal before after)))
 
 (defn create-node [vdom goal {:keys [id tag] :as node}]
-  (println "create-node")
   (if (= tag :text)
     (create-text vdom id (:text node))
     (-> vdom
         (create-element id tag)
-        (set-attributes id (:attributes node))
-        (patch-children goal id))))
+        (set-attributes id (:attributes node)))))
 
 (defn patch-node [vdom goal id]
   (let [{:keys [tag] :as after} (get-in goal [:nodes id])]
@@ -179,16 +193,52 @@
       (update-node vdom goal before after)
       (create-node vdom goal after))))
 
+(def ^:dynamic *parented*) ;XXX debug-only
+
+(defn patch-children [vdom goal {:keys [id children]}]
+  (let [;; Move desired children in to place.
+        vdom (reduce (fn [vdom [i child]]
+                       (assert (nil? (*parented* child))
+                               (str "Duplicate node id: " child))
+                       (set! *parented* (conj *parented* child))
+                       (if (= (get-in vdom [:nodes id :children i]) child)
+                         vdom
+                         (insert-child vdom id i child)))
+             vdom
+             (map vector (range) children))
+        ;; Detatch any leftover trailing children.
+        n (max 0 (- (count (get-in vdom [:nodes id :children]))
+                    (count children)))
+        vdom (nth (iterate (fn [vdom]
+                             (detatch-last-child vdom id))
+                           vdom)
+                  n)]
+    vdom))
+
 (defn patch [vdom goal]
   (let [unmounted (set/difference (:mounted vdom) (:mounted goal))
-        freed (set/difference (:detatched vdom) (:detatched goal))
+        ids (-> goal :nodes keys)
+        freed (set/difference (-> vdom :nodes keys set) ids)
         vdom (reduce unmount vdom unmounted)
         vdom (reduce (fn [vdom id]
                        (patch-node vdom goal id))
                      vdom
-                     (-> goal :nodes keys))
+                     ids)
+        vdom (binding [*parented* #{}]
+               (reduce (fn [vdom id]
+                         (let [node (get-in goal [:nodes id])]
+                           (if (-> node :tag keyword?)
+                             vdom
+                             (patch-children vdom goal node))))
+                       vdom
+                       ids))
         ;XXX do mounts
-        vdom (reduce free vdom freed)]
+        vdom (reduce (fn [vdom id]
+                       (if (get-in vdom [:nodes id :parent])
+                         vdom
+                         (free vdom id)))
+                     vdom
+                     freed)]
     vdom))
 
 (defn diff [before after]
@@ -196,7 +246,9 @@
 
 (comment
 
-  (-> '(div {} (span {:key "k"} "foo") (b {} "bar"))
+  (-> '(div {"tabindex" 0}
+         (span {:key "k"} "foo")
+         (b {} "bar"))
       seqs->maps
       assign-ids
       maps->vdom
@@ -209,9 +261,14 @@
     (let [after* (patch before after)]
       (fipp.edn/pprint
         (if (not= after* after)
-          {:before before
+          (do
+            (doseq [[k v] (:nodes after)]
+              (when-not (= v (get-in after* [:nodes k]))
+                (fipp.edn/pprint [:XXX v (get-in after* [:nodes k]) :XXX]))
+              )
+            {:before before
            :expected after
-           :actual after*}
+           :actual after*})
           {:before before
            :after after}))))
 
