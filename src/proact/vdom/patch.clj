@@ -82,12 +82,8 @@
                        vdom
                        ids))
         ;XXX do mounts
-        vdom (reduce (fn [vdom id]
-                       (if (get-in vdom [:nodes id :parent])
-                         vdom
-                         (vdom/free vdom id)))
-                     vdom
-                     freed)]
+        freed (remove #(get-in vdom [:nodes % :parent]) freed)
+        vdom (reduce vdom/free vdom freed)]
     vdom))
 
 (defn diff [before after]
@@ -99,14 +95,9 @@
     (let [after* (patch before after)]
       (fipp.edn/pprint
         (if (not= after* after)
-          (do
-            (doseq [[k v] (:nodes after)]
-              (when-not (= v (get-in after* [:nodes k]))
-                (fipp.edn/pprint [:XXX v (get-in after* [:nodes k]) :XXX]))
-              )
-            {:before before
+          {:before before
            :expected after
-           :actual after*})
+           :actual after*}
           {:before before
            :after after}))))
 
@@ -115,7 +106,7 @@
                             (span {:key "k"} "foo")
                             (b {} "bar")))]
     (assert-patch vdom/null vdom)
-    ;(assert-patch vdom empty-vdom)
+    (assert-patch vdom vdom/null)
     )
 
 )

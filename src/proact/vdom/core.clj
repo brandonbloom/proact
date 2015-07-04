@@ -77,6 +77,7 @@
   (update-in vdom [:nodes id :attributes] merge attributes))
 
 (defn insert-child [vdom parent-id index child-id]
+  ;;TODO This needs an assert or two.
   (let [n (get-in vdom [:nodes child-id])
         vdom (if-let [p (:parent n)]
                (update-in vdom [:nodes p :children] remove-item child-id)
