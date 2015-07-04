@@ -10,7 +10,7 @@
 (defn detatch-last-child [vdom id]
   (vdom/detatch vdom (peek (get-in vdom [:nodes id :children]))))
 
-(defn update-element [vdom goal before {:keys [id attributes] :as after}]
+(defn update-element [vdom before {:keys [id attributes] :as after}]
   (let [removed (set/difference (-> before :attributes keys set)
                                 (-> attributes keys set))
         vdom (vdom/remove-attributes vdom id removed)
@@ -23,30 +23,28 @@
                         attributes)]
     (vdom/set-attributes vdom id updated)))
 
-(defn update-node [vdom goal before {:keys [id tag] :as after}]
+(defn update-node [vdom before {:keys [id tag] :as after}]
   (assert (= (:tag before) tag) (str "Cannot transmute node type for id " id))
   (if (= tag :text)
     (update-text vdom id before after)
-    (update-element vdom goal before after)))
+    (update-element vdom before after)))
 
-(defn create-node [vdom goal {:keys [id tag] :as node}]
+(defn create-node [vdom {:keys [id tag] :as node}]
   (if (= tag :text)
     (vdom/create-text vdom id (:text node))
     (-> vdom
         (vdom/create-element id tag)
         (vdom/set-attributes id (:attributes node)))))
 
-(defn patch-node [vdom goal id]
-  (let [{:keys [tag] :as after} (get-in goal [:nodes id])]
-    (if-let [before (get-in vdom [:nodes id])]
-      (update-node vdom goal before after)
-      (create-node vdom goal after))))
+(defn patch-node [vdom {:keys [id tag] :as node}]
+  (if-let [before (get-in vdom [:nodes id])]
+    (update-node vdom before node)
+    (create-node vdom node)))
 
 (def ^:dynamic *parented*) ;XXX debug-only
 
-(defn patch-children [vdom goal id]
-  (let [{:keys [id children]} (get-in goal [:nodes id])
-        ;; Move desired children in to place.
+(defn patch-children [vdom {:keys [id children]}]
+  (let [;; Move desired children in to place.
         vdom (reduce (fn [vdom [i child]]
                        (assert (nil? (*parented* child))
                                (str "Duplicate node id: " child))
@@ -68,18 +66,14 @@
 (defn patch [vdom goal]
   (let [unmounted (set/difference (:mounted vdom) (:mounted goal))
         ids (-> goal :nodes keys)
+        nodes (map #(get-in goal [:nodes %]) ids)
         freed (set/difference (-> vdom :nodes keys set) ids)
         vdom (reduce vdom/unmount vdom unmounted)
-        vdom (reduce (fn [vdom id]
-                       (patch-node vdom goal id))
-                     vdom
-                     ids)
+        vdom (reduce patch-node vdom nodes)
         el-ids (filter #(string? (get-in vdom [:nodes % :tag])) ids)
+        els (map #(get-in goal [:nodes %]) el-ids)
         vdom (binding [*parented* #{}]
-               (reduce (fn [vdom id]
-                         (patch-children vdom goal id))
-                       vdom
-                       el-ids))
+               (reduce patch-children vdom els))
         ;XXX do mounts
         freed (remove #(get-in vdom [:nodes % :parent]) freed)
         vdom (reduce vdom/free vdom freed)]
