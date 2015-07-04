@@ -48,10 +48,7 @@
 
 (defn maps->vdom [x]
   (let [g (maps->nodes x)]
-    {:mounts {}
-     :nodes g
-     :mounted #{}
-     :detatched #{(:id x)}}))
+    (assoc vdom/null :nodes g :detatched #{(:id x)})))
 
 (defn seqs->vdom [x]
   (-> x seqs->maps assign-ids maps->vdom))
