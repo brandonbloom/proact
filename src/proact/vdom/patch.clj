@@ -44,8 +44,9 @@
 
 (def ^:dynamic *parented*) ;XXX debug-only
 
-(defn patch-children [vdom goal {:keys [id children]}]
-  (let [;; Move desired children in to place.
+(defn patch-children [vdom goal id]
+  (let [{:keys [id children]} (get-in goal [:nodes id])
+        ;; Move desired children in to place.
         vdom (reduce (fn [vdom [i child]]
                        (assert (nil? (*parented* child))
                                (str "Duplicate node id: " child))
@@ -73,14 +74,12 @@
                        (patch-node vdom goal id))
                      vdom
                      ids)
+        el-ids (filter #(string? (get-in vdom [:nodes % :tag])) ids)
         vdom (binding [*parented* #{}]
                (reduce (fn [vdom id]
-                         (let [node (get-in goal [:nodes id])]
-                           (if (-> node :tag keyword?)
-                             vdom
-                             (patch-children vdom goal node))))
+                         (patch-children vdom goal id))
                        vdom
-                       ids))
+                       el-ids))
         ;XXX do mounts
         freed (remove #(get-in vdom [:nodes % :parent]) freed)
         vdom (reduce vdom/free vdom freed)]
