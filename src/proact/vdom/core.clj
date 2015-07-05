@@ -17,6 +17,12 @@
   each tree can be either 'mounted' on to an external DOM or 'detatched'.
   Provides a minimal set of atomic manipulations which mirror efficient
   mutations of a browser DOM."
+  ;; Accessors
+  (node [vdom id])
+  (nodes [vdom])
+  (mounts [vdom])
+  (hosts [vdom])
+  ;; Manipulations
   (mount [vdom eid id])
   (unmount [vdom id])
   (detatch [vdom id])
@@ -28,33 +34,46 @@
   ;;TODO Should styles be treated specially? ie remove-styles and set-styles
   (insert-child [vdom parent-id index child-id])
   (free [vdom id])
-  ;;TODO provide accessors? parent, children, attributes, etc
-  ;;^^^^ If yes, use a separate read-only protocol to accomodate trace.
   )
 
-(defrecord VDom [mounts nodes mounted detatched]
+;;TODO :parent is stored on nodes directly, should it be a top-level map?
+(defrecord VDom [nodes mounts hosts detatched]
 
   IDom
+
+  ;; Accessors
+
+  (node [vdom id]
+    (get-in vdom [:nodes id]))
+
+  (nodes [vdom]
+    (-> vdom :nodes vals))
+
+  (mounts [vdom]
+    (:mounts vdom))
+
+  (hosts [vdom]
+    (:hosts vdom))
+
+  ;; Manipulations
 
   (mount [vdom eid id]
     (let [n (get-in vdom [:nodes id])]
       (assert n (str "Cannot mount unknown node: " id))
       (assert (nil? (:parent n)) (str "Cannot mount interior node: " id)))
-    (assert (nil? (get-in vdom [:mounted id])) (str "Already mounted: " id))
+    (assert (nil? (get-in vdom [:hosts id])) (str "Already mounted: " id))
     (-> vdom
         (assoc-in [:mounts eid] id)
-        (assoc-in [:nodes id :mount] eid)
-        (update :mounted conj id)
+        (assoc-in [:hosts id] eid)
         (update :detatched disj id)))
 
   (unmount [vdom id]
     (let [n (get-in vdom [:nodes id])]
       (assert n (str "Cannot unmount unknown node: " id))
-      (assert (:mount n) (str "Node already not mounted: " id))
+      (assert (get-in vdom [:hosts id]) (str "Node already not mounted: " id))
       (-> vdom
           (update :mounts dissoc id)
-          (update-in [:nodes id] dissoc :mount)
-          (update :mounted disj id)
+          (update :hosts dissoc id)
           (update :detatched conj id))))
 
   (detatch [vdom id]
@@ -116,4 +135,4 @@
 
   )
 
-(def null (map->VDom {:mounts {} :nodes {} :mounted #{} :detatched #{}}))
+(def null (map->VDom {:nodes {} :mounts {} :hosts {} :detatched #{}}))

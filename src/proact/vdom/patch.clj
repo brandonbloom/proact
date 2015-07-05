@@ -1,6 +1,7 @@
 (ns proact.vdom.patch
   (:require [clojure.set :as set]
-            [proact.vdom.core :as vdom]))
+            [proact.vdom.core :as vdom]
+            [proact.vdom.trace :refer [traced]]))
 
 (defn update-text [vdom before {:keys [id text] :as after}]
   (if (= (:text before) text)
@@ -8,7 +9,7 @@
     (vdom/set-text vdom id text)))
 
 (defn detatch-last-child [vdom id]
-  (vdom/detatch vdom (peek (get-in vdom [:nodes id :children]))))
+  (vdom/detatch vdom (-> (vdom/node vdom id) :children peek)))
 
 (defn update-element [vdom before {:keys [id attributes] :as after}]
   (let [removed (set/difference (-> before :attributes keys set)
@@ -37,7 +38,7 @@
         (vdom/set-attributes id (:attributes node)))))
 
 (defn patch-node [vdom {:keys [id tag] :as node}]
-  (if-let [before (get-in vdom [:nodes id])]
+  (if-let [before (vdom/node vdom id)]
     (update-node vdom before node)
     (create-node vdom node)))
 
@@ -49,13 +50,13 @@
                        (assert (nil? (*parented* child))
                                (str "Duplicate node id: " child))
                        (set! *parented* (conj *parented* child))
-                       (if (= (get-in vdom [:nodes id :children i]) child)
+                       (if (= (get-in (vdom/node vdom id) [:children i]) child)
                          vdom
                          (vdom/insert-child vdom id i child)))
              vdom
              (map vector (range) children))
         ;; Detatch any leftover trailing children.
-        n (max 0 (- (count (get-in vdom [:nodes id :children]))
+        n (max 0 (- (count (:children (vdom/node vdom id)))
                     (count children)))
         vdom (nth (iterate (fn [vdom]
                              (detatch-last-child vdom id))
@@ -64,23 +65,27 @@
     vdom))
 
 (defn patch [vdom goal]
-  (let [unmounted (set/difference (:mounted vdom) (:mounted goal))
-        ids (-> goal :nodes keys)
-        nodes (map #(get-in goal [:nodes %]) ids)
-        freed (set/difference (-> vdom :nodes keys set) ids)
+  (let [N0 (vdom/nodes vdom), M0 (vdom/mounts vdom), H0 (vdom/hosts vdom)
+        N1 (vdom/nodes goal), M1 (vdom/mounts goal), H1 (vdom/hosts goal)
+        unmounted (->> (remove (fn [[eid nid]] (= (M1 eid) nid)) M0)
+                       (map second))
+        mounted (remove (fn [[nid eid]] (= (H0 nid) eid)) H1)
+        freed (set/difference (set (map :id N0)) (set (map :id N1)))
         vdom (reduce vdom/unmount vdom unmounted)
-        vdom (reduce patch-node vdom nodes)
-        el-ids (filter #(string? (get-in vdom [:nodes % :tag])) ids)
-        els (map #(get-in goal [:nodes %]) el-ids)
+        vdom (reduce patch-node vdom N1)
+        els (filter #(-> % :tag string?) N1)
         vdom (binding [*parented* #{}]
                (reduce patch-children vdom els))
-        ;XXX do mounts
-        freed (remove #(get-in vdom [:nodes % :parent]) freed)
-        vdom (reduce vdom/free vdom freed)]
+        freed (remove #(:parent (vdom/node vdom %)) freed)
+        vdom (reduce vdom/free vdom freed)
+        vdom (reduce (fn [vdom [nid eid]]
+                          (vdom/mount vdom eid nid))
+                        vdom
+                        mounted)]
     vdom))
 
 (defn diff [before after]
-  (:trace (patch before after))) ;;XXX must implement :trace
+  (-> (traced before) (patch after) :trace))
 
 (comment
 
@@ -94,12 +99,20 @@
           {:before before
            :after after}))))
 
+  (defn party [before after]
+    (assert-patch before after)
+    (fipp.edn/pprint (diff before after))
+    )
+
   (require '[proact.vdom.syntax :refer [seqs->vdom]])
+  (require '[proact.vdom.trace :refer [traced]])
   (let [vdom (seqs->vdom '(div {"tabindex" 0}
                             (span {:key "k"} "foo")
-                            (b {} "bar")))]
-    (assert-patch vdom/null vdom)
-    (assert-patch vdom vdom/null)
+                            (b {} "bar")))
+        vdom (vdom/mount vdom "blah" [["div" 0]])
+        ]
+    ;(party vdom/null vdom)
+    (party vdom vdom/null)
     )
 
 )
