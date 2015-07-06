@@ -32,6 +32,7 @@
   (remove-attributes [vdom id attributes])
   (set-attributes [vdom id attributes])
   ;;TODO Should styles be treated specially? ie remove-styles and set-styles
+  ;;TODO ^^^ Probably, and also remove-attributes and set-attributes
   (insert-child [vdom parent-id index child-id])
   (free [vdom id])
   )
@@ -127,7 +128,6 @@
     (assert (get-in vdom [:detatched id])
             (str "Cannot free non-detatched node:" id))
     ((fn rec [vdom id]
-       ;;TODO trace frees (top-down or bottom-up? or as an atomic set?)
        (reduce rec
                (update vdom :nodes dissoc id)
                (get-in vdom [:nodes id :children])))

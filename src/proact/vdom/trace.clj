@@ -21,18 +21,10 @@
   vdom/IDom
 
   ;; Accessors
-
-  (node [vdom id]
-    (vdom/node dom id))
-
-  (nodes [vdom]
-    (vdom/nodes dom))
-
-  (mounts [vdom]
-    (vdom/mounts dom))
-
-  (hosts [vdom]
-    (vdom/hosts dom))
+  (node [vdom id] (vdom/node dom id))
+  (nodes [vdom] (vdom/nodes dom))
+  (mounts [vdom] (vdom/mounts dom))
+  (hosts [vdom] (vdom/hosts dom))
 
   ;; Manipulations
 
