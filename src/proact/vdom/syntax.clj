@@ -4,9 +4,9 @@
 
 (declare seqs->maps)
 
-(defn seq->map [[tag attributes & children]]
+(defn seq->map [[tag props & children]]
   {:tag (str tag)
-   :attributes attributes
+   :props props
    :children (mapv seqs->maps children)})
 
 (defn seqs->maps [x]
@@ -23,12 +23,12 @@
   ([xs path]
    (mapv (fn [i x]
            (let [tag (:tag x)
-                 k (get-in x [:attributes :key] i)
+                 k (get-in x [:props :key] i)
                  id (conj path [tag k])
                  x (assoc x :id id)]
              (if (string? tag)
                (-> x
-                   (update :attributes dissoc :key)
+                   (update :props dissoc :key)
                    (update :children assign-ids id))
                x)))
          (range)

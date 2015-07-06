@@ -11,18 +11,18 @@
 (defn detatch-last-child [vdom id]
   (vdom/detatch vdom (-> (vdom/node vdom id) :children peek)))
 
-(defn update-element [vdom before {:keys [id attributes] :as after}]
-  (let [removed (set/difference (-> before :attributes keys set)
-                                (-> attributes keys set))
-        vdom (vdom/remove-attributes vdom id removed)
-        old-attrs (:attributes before)
+(defn update-element [vdom before {:keys [id props] :as after}]
+  (let [removed (set/difference (-> before :props keys set)
+                                (-> props keys set))
+        vdom (vdom/remove-props vdom id removed)
+        old-props (:props before)
         updated (reduce (fn [acc [k val]]
-                          (if (= (old-attrs k val) val)
+                          (if (= (old-props k val) val)
                             acc
                             (assoc acc k val)))
                         nil
-                        attributes)]
-    (vdom/set-attributes vdom id updated)))
+                        props)]
+    (vdom/set-props vdom id updated)))
 
 (defn update-node [vdom before {:keys [id tag] :as after}]
   (assert (= (:tag before) tag) (str "Cannot transmute node type for id " id))
@@ -35,7 +35,7 @@
     (vdom/create-text vdom id (:text node))
     (-> vdom
         (vdom/create-element id tag)
-        (vdom/set-attributes id (:attributes node)))))
+        (vdom/set-props id (:props node)))))
 
 (defn patch-node [vdom {:keys [id tag] :as node}]
   (if-let [before (vdom/node vdom id)]

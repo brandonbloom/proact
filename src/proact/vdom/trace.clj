@@ -52,13 +52,13 @@
     (DomTrace. (conj trace [:create-element id tag])
                (vdom/create-element dom id tag)))
 
-  (remove-attributes [vdom id attributes]
-    (DomTrace. (conj trace [:remove-attributes id attributes])
-               (vdom/remove-attributes dom id attributes)))
+  (remove-props [vdom id props]
+    (DomTrace. (conj trace [:remove-props id props])
+               (vdom/remove-props dom id props)))
 
-  (set-attributes [vdom id attributes]
-    (DomTrace. (conj trace [:set-attributes id attributes])
-               (vdom/set-attributes dom id attributes)))
+  (set-props [vdom id props]
+    (DomTrace. (conj trace [:set-props id props])
+               (vdom/set-props dom id props)))
 
   (insert-child [vdom parent-id index child-id]
     (DomTrace. (conj trace [:insert-child parent-id index child-id])

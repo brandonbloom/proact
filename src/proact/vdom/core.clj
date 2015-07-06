@@ -29,10 +29,8 @@
   (create-text [vdom id text])
   (set-text [vdom id text])
   (create-element [vdom id tag])
-  (remove-attributes [vdom id attributes])
-  (set-attributes [vdom id attributes])
-  ;;TODO Should styles be treated specially? ie remove-styles and set-styles
-  ;;TODO ^^^ Probably, and also remove-attributes and set-attributes
+  (remove-props [vdom id props])
+  (set-props [vdom id props])
   (insert-child [vdom parent-id index child-id])
   (free [vdom id])
   )
@@ -103,15 +101,15 @@
         (assoc-in [:nodes id] {:id id :tag tag :children []})
         (update :detatched conj id)))
 
-  (remove-attributes [vdom id attributes]
+  (remove-props [vdom id props]
     (assert (string? (get-in vdom [:nodes id :tag]))
-            (str "Cannot remove attributes of non-element node: " id))
-    (update-in vdom [:nodes id :attributes] #(reduce disj % attributes)))
+            (str "Cannot remove props of non-element node: " id))
+    (update-in vdom [:nodes id :props] #(reduce disj % props)))
 
-  (set-attributes [vdom id attributes]
+  (set-props [vdom id props]
     (assert (string? (get-in vdom [:nodes id :tag]))
-            (str "Cannot set attributes of non-element node: " id))
-    (update-in vdom [:nodes id :attributes] merge attributes))
+            (str "Cannot set props of non-element node: " id))
+    (update-in vdom [:nodes id :props] merge props))
 
   (insert-child [vdom parent-id index child-id]
     ;;TODO This needs an assert or two.
