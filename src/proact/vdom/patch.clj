@@ -11,6 +11,7 @@
 (defn detatch-last-child [vdom id]
   (vdom/detatch vdom (-> (vdom/node vdom id) :children peek)))
 
+;;XXX must do props patching recursively for styles & attributes
 (defn update-element [vdom before {:keys [id props] :as after}]
   (let [removed (set/difference (-> before :props keys set)
                                 (-> props keys set))

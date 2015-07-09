@@ -2,6 +2,9 @@
   "Parse an Edn tree in to a vdom graph."
   (:require [proact.vdom.core :as vdom]))
 
+;;XXX The code in this file is only really used for debugging and
+;;XXX should not be part of the public API. Move to test directory?
+
 (declare seqs->maps)
 
 (defn seq->map [[tag props & children]]
