@@ -1,4 +1,5 @@
 (ns proact.vdom.patch
+  (:refer-clojure :exclude [create-node]) ;XXX core leaking this private?
   (:require [clojure.set :as set]
             [proact.vdom.core :as vdom]
             [proact.vdom.trace :refer [traced]]))
@@ -15,7 +16,9 @@
 (defn update-element [vdom before {:keys [id props] :as after}]
   (let [removed (set/difference (-> before :props keys set)
                                 (-> props keys set))
-        vdom (vdom/remove-props vdom id removed)
+        vdom (if (seq removed)
+               (vdom/remove-props vdom id removed)
+               vdom)
         old-props (:props before)
         updated (reduce (fn [acc [k val]]
                           (if (= (old-props k val) val)
@@ -23,20 +26,24 @@
                             (assoc acc k val)))
                         nil
                         props)]
-    (vdom/set-props vdom id updated)))
+    (if (seq updated)
+      (vdom/set-props vdom id updated)
+      vdom)))
 
 (defn update-node [vdom before {:keys [id tag] :as after}]
   (assert (= (:tag before) tag) (str "Cannot transmute node type for id " id))
   (if (= tag :text)
-    (update-text vdom id before after)
+    (update-text vdom before after)
     (update-element vdom before after)))
 
 (defn create-node [vdom {:keys [id tag] :as node}]
   (if (= tag :text)
     (vdom/create-text vdom id (:text node))
-    (-> vdom
-        (vdom/create-element id tag)
-        (vdom/set-props id (:props node)))))
+    (let [{:keys [props]} node
+          vdom (vdom/create-element vdom id tag)]
+      (if (seq props)
+        (vdom/set-props vdom id (:props node))
+        vdom))))
 
 (defn patch-node [vdom {:keys [id tag] :as node}]
   (if-let [before (vdom/node vdom id)]

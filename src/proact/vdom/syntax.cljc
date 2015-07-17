@@ -5,6 +5,8 @@
 ;;XXX The code in this file is only really used for debugging and
 ;;XXX should not be part of the public API. Move to test directory?
 
+;;XXX Should this use vdom/create-element, etc rather than direct updates?
+
 (declare seqs->maps)
 
 (defn seq->map [[tag props & children]]

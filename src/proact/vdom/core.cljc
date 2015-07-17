@@ -6,8 +6,16 @@
 (defn remove-at [v i]
   (rrb/catvec (rrb/subvec v 0 i) (rrb/subvec v (inc i))))
 
-(defn remove-item [^clojure.lang.APersistentVector v x]
-  (remove-at v (.indexOf v x)))
+(defn index-of [v x]
+  (let [n (count v)]
+    (loop [i 0]
+      (cond
+        (= i n) nil
+        (= (nth v i) x) i
+        :else (recur (inc i))))))
+
+(defn remove-item [v x]
+  (remove-at v (index-of v x)))
 
 (defn insert [v i x]
   (rrb/catvec (rrb/subvec v 0 i) [x] (rrb/subvec v i)))
@@ -80,9 +88,9 @@
       (assert n (str "No such node id: " id))
       (assert parent (str "No already detatched: " id))
       (-> vdom
-          (update-in vdom [:nodes parent :children] remove-item id)
-          (update-in vdom [:nodes id] dissoc :parent)
-          (update vdom :detatched conj id))))
+          (update-in [:nodes parent :children] remove-item id)
+          (update-in [:nodes id] dissoc :parent)
+          (update :detatched conj id))))
 
   (create-text [vdom id text]
     (assert (nil? (get-in vdom [:nodes id])) (str "Node already exists: " id))
