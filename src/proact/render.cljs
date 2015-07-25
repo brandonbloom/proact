@@ -18,14 +18,14 @@
   (aget (.-childNodes *parent*) *index*))
 
 (defn detatch []
-  (println "detatch")
+  ;(println "detatch")
   (let [node (get-node)]
     (set! *detatched* (conj *detatched* node))
     (.removeChild *parent* node)
     nil))
 
 (defn insert [inserted]
-  (println "insert")
+  ;(println "insert")
   (let [neighbor (get-node)]
     (set! *detatched* (disj *detatched* inserted))
     (set! *moved* (conj *moved* inserted))
@@ -35,7 +35,7 @@
     inserted))
 
 (defn substitute [replacement]
-  (println "substitute")
+  ;(println "substitute")
   (let [existing (get-node)]
     (set! *detatched* (-> *detatched* (conj existing) (disj replacement)))
     (set! *moved* (conj *moved* replacement))
@@ -43,11 +43,11 @@
     replacement))
 
 (defn create-text [{:keys [text]}]
-  (println "create-text")
+  ;(println "create-text")
   (.createTextNode js/document text))
 
 (defn patch-text [before after]
-  (println "patch-text")
+  ;(println "patch-text")
   (if (string? before)
     (let [node (get-node)]
       (.replaceData node 0 (.-length node) (:text after))
@@ -55,7 +55,7 @@
     (substitute (create-text after))))
 
 (defn create-children [parent children]
-  (println "create-children")
+  ;(println "create-children")
   (binding [*parent* parent
             *index* 0]
     (doseq [child children]
@@ -66,7 +66,7 @@
   (set! *after* (assoc-in *after* [(:id widget) :child-nodes] [])))
 
 (defn create-element [widget]
-  (println "create-element" (:html/tag widget) (count (:children widget)))
+  ;(println "create-element" (:html/tag widget) (count (:children widget)))
   (let [el (.createElement js/document (:html/tag widget))]
     (begin-children widget)
     (doseq [[k v] (:html/attributes widget)]
@@ -75,7 +75,7 @@
     el))
 
 (defn patch-children [before after]
-  (println "patch-children")
+  ;(println "patch-children")
   ;;TODO compare against before's children
   (begin-children after)
   (doseq [child (:children after)]
@@ -86,7 +86,7 @@
       (detatch))))
 
 (defn patch-element [before after]
-  (println "patch-element")
+  ;(println "patch-element")
   (if (= (:html/tag before) (:html/tag after))
     (do
       ;;TODO patch attributes
@@ -95,7 +95,7 @@
     (substitute (create-element after))))
 
 (defn put [{:keys [id] :as widget} create patch]
-  (println "put" id)
+  ;(println "put" id)
   (let [node (if-let [existing nil #_(*before* id)]
                (do (assert (not (*moved* id)))
                    (if (= existing widget)
@@ -106,11 +106,11 @@
     node))
 
 (defn put-text [widget]
-  (println "put-text")
+  ;(println "put-text")
   (put widget create-text patch-text))
 
 (defn put-element [widget]
-  (println "put-element")
+  ;(println "put-element")
   (put widget create-element patch-element))
 
 (defn normalize
@@ -141,7 +141,7 @@
       widget)))
 
 (defn render-widget [widget]
-  (println "render")
+  ;(println "render")
   (let [expanded (expand widget)]
     (cond
       (:text expanded) (put-text expanded)
@@ -157,12 +157,13 @@
 
 (defn release [node]
   ;;TODO recursive cleanup, skip sub-trees in *moved*
-  (println node " was detatched"))
+  ;(println node " was detatched")
+  )
 
 ;;; BEGIN Public Interface
 
 (defn render [roots]
-  (println "-----------------")
+  ;(println "-----------------")
   (let [{old-roots :roots, :keys [graph]} @state]
     (binding [*before* graph
               *after* graph
