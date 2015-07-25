@@ -12,6 +12,7 @@
   ;; (swap! app-state update-in [:__figwheel_counter] inc)
 )
 
-(render {"todoapp" (todo/app {})})
+;(render {"todoapp" (todo/app {})})
+(pprint (todo/app {}))
 
 ;(pprint (:graph @proact.render/state))

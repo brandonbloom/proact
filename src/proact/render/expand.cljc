@@ -1,4 +1,11 @@
-(ns proact.components)
+(ns proact.render.expand
+  (:require [proact.util :refer [flat]]))
+
+(defn normalize [widget]
+  (cond
+    (string? widget) {:html/tag :text :text widget} ;XXX Use :prototype :text
+    (map? widget) (update widget :children #(mapv normalize (flat %)))
+    :else (throw (ex-info "Unsupported widget type." {:class (class widget)}))))
 
 (defn assign-indexes [widget]
   (update widget :children #(mapv (fn [child i]
@@ -26,10 +33,17 @@
     (template widget)))
 
 (defn expand [widget]
-  (let [widget (-> widget assign-indexes assign-ids)]
+  (let [widget (-> widget normalize assign-indexes assign-ids)]
     (if-let [widget (render-template widget)]
       (recur widget)
       widget)))
+
+(defn expand-all [widget]
+  (-> widget
+      expand
+      (update :children #(mapv expand-all %))))
+
+;;; Graph stuff?
 
 (defn add-widget [graph widget]
   (assoc graph (:id widget) widget))
@@ -64,6 +78,11 @@
 
 (comment
 
+  (-> "abc"
+      expand
+      fipp.edn/pprint
+      )
+
   (-> figure
       widget->graph
       fipp.edn/pprint
@@ -73,5 +92,12 @@
       widget->graph
       fipp.edn/pprint
       )
+
+  (require 'proact.examples.todo)
+  (->
+    (proact.examples.todo/app {})
+    expand-all
+    fipp.edn/pprint
+    )
 
 )
