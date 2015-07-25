@@ -96,7 +96,7 @@
 
 (defn put [{:keys [id] :as widget} create patch]
   (println "put" id)
-  (let [node (if-let [existing (*before* id)]
+  (let [node (if-let [existing nil #_(*before* id)]
                (do (assert (not (*moved* id)))
                    (if (= existing widget)
                      (get-node)
