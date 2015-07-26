@@ -5,7 +5,7 @@
   (cond
     (string? widget) {:html/tag :text :text widget} ;XXX Use :prototype :text
     (map? widget) (update widget :children #(mapv normalize (flat %)))
-    :else (throw (ex-info "Unsupported widget type." {:class (class widget)}))))
+    :else (throw (ex-info "Unsupported widget type." {:class (type widget)}))))
 
 (defn assign-indexes [widget]
   (update widget :children #(mapv (fn [child i]

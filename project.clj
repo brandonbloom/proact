@@ -26,12 +26,13 @@
                          :output-to "resources/public/js/compiled/proact.js"
                          :output-dir "resources/public/js/compiled/out"
                          :source-maps true
-                         :source-map-timestamp true }}
+                         :source-map-timestamp true}}
              {:id "min"
               :source-paths ["src"]
               :compiler {:output-to "resources/public/js/compiled/proact.js"
                          :main proact.core
                          :optimizations :advanced
+                         :elide-asserts true
                          :pretty-print false}}]}
 
   :figwheel {
