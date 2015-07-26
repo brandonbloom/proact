@@ -3,9 +3,11 @@
             [proact.html-util :refer [classes link-to]]))
 
 
-(def todos [{:text "OMG"
+(def todos [{:id "todo-1"
+             :text "OMG"
              :completed? true}
-            {:text "blah blah"
+            {:id "todo-2"
+             :text "blah blah"
              :completed? false}])
 
 

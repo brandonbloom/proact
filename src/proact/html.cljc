@@ -3,9 +3,9 @@
 
 #?(:clj
 (defmacro defelement [name]
-  `(defn ~name [~'attrs & ~'children]
+  `(defn ~name [~'props & ~'children]
      {:html/tag ~(str name)
-      :html/attributes ~'attrs
+      :html/props ~'props
       :children ~'children})))
 
 #?(:clj

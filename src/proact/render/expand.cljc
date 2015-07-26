@@ -9,19 +9,22 @@
 
 (defn assign-indexes [widget]
   (update widget :children #(mapv (fn [child i]
-                                    (assoc child :child-index i))
+                                    (-> child
+                                        (assoc :child-index i)
+                                        assign-indexes))
                                   % (range))))
 
+;;XXX this is assigning duplicate IDs :-(
 (defn assign-ids [widget]
-  (let [ctx (:context widget [])
+  (let [scope (:scope widget [])
         idx (:child-index widget :root)
         k (:key widget idx)
-        id (:id widget [ctx k])
-        ctx (conj ctx k)]
+        id (:id widget [scope k])
+        scope (conj scope k)]
     (-> widget
         (assoc :id id)
         (update :children #(mapv (fn [child]
-                                   (assign-ids (assoc child :context ctx)))
+                                   (assign-ids (assoc child :scope scope)))
                                  %)))))
 
 ;;XXX Is this necessary? Desirable? Why?
@@ -30,7 +33,8 @@
 
 (defn render-template [widget]
   (when-let [template (:template widget)]
-    (template widget)))
+    (merge (template widget)
+           (select-keys widget [:child-index :id :key :scope]))))
 
 (defn expand [widget]
   (let [widget (-> widget normalize assign-indexes assign-ids)]
@@ -64,7 +68,7 @@
 
 (def figure
   {:children [{:html/tag "img"
-               :html/attributes {"src" "http://example.com/img.jpg"}}
+               :html/props {"src" "http://example.com/img.jpg"}}
               {:html/tag :text
                :text "A Thing"}]})
 
@@ -84,12 +88,14 @@
       )
 
   (-> figure
-      widget->graph
+      expand-all
+      ;widget->graph
       fipp.edn/pprint
       )
 
   (-> display-name
-      widget->graph
+      expand-all
+      ;widget->graph
       fipp.edn/pprint
       )
 
