@@ -38,6 +38,7 @@
                           ;XXX onBlur, onChange, onKeyDown
                           })))})
 
+;; Fn syntax is more convenient, but loses some benefits of components...
 (defn filter-link [showing k href content]
   (html/li {}
     (html/a {"className" (when (= showing k) "selected")
@@ -48,7 +49,6 @@
   {:data {:active 2 :completed 5 :showing :all}
    :template
    (fn [{{:keys [active completed showing]} :data}]
-     ;XXX use completed
      (html/footer {"id" "footer"}
        (html/span {"id" "todo-count"}
          (html/strong {} (str active))
@@ -56,7 +56,10 @@
        (html/ul {"id" "filters"}
          (filter-link showing :all "#/" "All")
          (filter-link showing :active "#/active" "Active")
-         (filter-link showing :completed "#/completed" "Completed"))))})
+         (filter-link showing :completed "#/completed" "Completed"))
+       (when (pos? completed)
+         (html/button {"id" "clear-completed"} ;XXX onClick
+           "Clear completed"))))})
 
 (def app
   {:data {:todos mock-todos :showing :all}
