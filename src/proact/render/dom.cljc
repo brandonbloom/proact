@@ -6,7 +6,10 @@
   ([parent nodes {:keys [id children], tag :html/tag, :as x}]
    (assert (nil? (nodes id)) (str "duplicate id: " id))
    (let [node (when tag
-                {:id id :tag tag :props (:html/props x) :parent parent})
+                {:id id
+                 :tag tag
+                 :props (:html/props x)
+                 :parent parent})
          node (if (= tag :text)
                 (assoc node :text (:text x))
                 (assoc node :children (mapv :id children)))

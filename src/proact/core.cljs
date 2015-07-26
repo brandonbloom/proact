@@ -14,7 +14,7 @@
   ;; (swap! app-state update-in [:__figwheel_counter] inc)
 )
 
-(-> (todo/app {})
+(-> todo/app
     expand-all
     tree->vdom
     (vdom/mount "todoapp" [[] :root])
