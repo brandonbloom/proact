@@ -8,20 +8,25 @@
              :completed? true}
             {:id "todo-2"
              :text "it works!"
-             :completed? false}])
+             :completed? true}])
 
+;;; Views
 
+(defn on-destroy-click [e]
+  #?(:cljs
+      (prn e)))
 
 (defn todo-item [{{:keys [completed? editing?] :as todo} :data, :as widget}]
   (html/li {"className" (classes {"completed" completed?
                                   "editing" editing?})}
     (html/div {"className" "view"}
       (html/input {"className" "toggle"
-                   "type" "checkbo"
+                   "type" "checkbox"
                    ;XXX onChange
                    "checked" completed?})
       (html/label {} (:text todo)) ;XXX onDoubleClick
-      (html/button {"className" "destroy"})) ;XXX onClick
+      (html/button {"className" "destroy"
+                    "onclick" on-destroy-click}))
     ;;XXX ref editField
     (html/input {"className" "edit"
                        ;XXX "value" this.state.editText
@@ -32,7 +37,8 @@
   ;XXX use completed
   (html/footer {"id" "footer"}
     (html/span {"id" "todo-count"}
-      (html/strong {} (str active)) (str showing " left"))
+      (html/strong {} (str active))
+      (if (= active 1) " item left" " items left"))
     (html/ul {"id" "filters"}
       (html/li {} (link-to "#/" "All"))
       (html/li {} (link-to "#/active" "Active"))
