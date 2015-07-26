@@ -4,8 +4,8 @@
 #?(:clj
 (defmacro defelement [name]
   `(defn ~name [~'props & ~'children]
-     {:html/tag ~(str name)
-      :html/props ~'props
+     {:dom/tag ~(str name)
+      :dom/props ~'props
       :children ~'children})))
 
 #?(:clj

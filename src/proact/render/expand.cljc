@@ -3,7 +3,7 @@
 
 (defn normalize [widget]
   (cond
-    (string? widget) {:html/tag :text :text widget} ;XXX Use :prototype :text
+    (string? widget) {:dom/tag :text :text widget} ;XXX Use :prototype :text
     (map? widget) (update widget :children #(mapv normalize (flat %)))
     :else (throw (ex-info "Unsupported widget type." {:class (type widget)}))))
 
@@ -14,7 +14,6 @@
                                         assign-indexes))
                                   % (range))))
 
-;;XXX this is assigning duplicate IDs :-(
 (defn assign-ids [widget]
   (let [scope (:scope widget [])
         idx (:child-index widget :root)
@@ -67,9 +66,9 @@
 ;;;;
 
 (def figure
-  {:children [{:html/tag "img"
-               :html/props {"src" "http://example.com/img.jpg"}}
-              {:html/tag :text
+  {:children [{:dom/tag "img"
+               :dom/props {"src" "http://example.com/img.jpg"}}
+              {:dom/tag :text
                :text "A Thing"}]})
 
 
@@ -77,7 +76,7 @@
   {:data {:first-name "Brandon"
           :last-name "Bloom"}
    :template (fn [{{:keys [first-name last-name]} :data}]
-               {:html/tag :text
+               {:dom/tag :text
                 :text (str last-name ", " first-name)})})
 
 (comment
