@@ -7,7 +7,7 @@
              :text "OMG"
              :completed? true}
             {:id "todo-2"
-             :text "blah blah"
+             :text "it works!"
              :completed? false}])
 
 
@@ -17,7 +17,7 @@
                                   "editing" editing?})}
     (html/div {"className" "view"}
       (html/input {"className" "toggle"
-                   "type" "checkbox"
+                   "type" "checkbo"
                    ;XXX onChange
                    "checked" completed?})
       (html/label {} (:text todo)) ;XXX onDoubleClick
