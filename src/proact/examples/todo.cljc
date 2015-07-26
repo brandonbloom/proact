@@ -11,11 +11,13 @@
     :text "it works!"
     :completed? false}])
 
-;;; Views
+;;; Event Handlers
 
 (defn on-destroy-click [e]
   #?(:cljs
       (prn e)))
+
+;;; Views
 
 (def todo-item
   {:template
@@ -57,11 +59,10 @@
          (filter-link showing :completed "#/completed" "Completed"))))})
 
 (def app
-  {:data {:todos mock-todos}
+  {:data {:todos mock-todos :showing :all}
    :template
-   (fn [{{:keys [todos]} :data}]
-     (let [showing :all ;XXX state
-           items (for [{:keys [id completed?] :as todo} todos
+   (fn [{{:keys [todos showing]} :data}]
+     (let [items (for [{:keys [id completed?] :as todo} todos
                        :when (case showing
                                :active (not completed?)
                                :completed completed?
