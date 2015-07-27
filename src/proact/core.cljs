@@ -1,17 +1,12 @@
 (ns ^:figwheel-always proact.core
-  (:require [cljs.pprint :refer [pprint]]
-            [proact.render.expand :refer [expand-all]]
-            [proact.render.dom :refer [tree->vdom]]
-            [proact.examples.todo :as todo]
-            [bbloom.vdom.core :as vdom]
-            [bbloom.vdom.browser :as browser]
+  (:require [proact.examples.todo :as todo]
+            [proact.render.browser :as browser]
             [goog]
             [goog.events :as gevents]
             [goog.history.EventType :as ghistory])
   (:import [goog History]))
 
 (enable-console-print!)
-
 
 (defonce nav-token (atom nil))
 
@@ -21,13 +16,7 @@
                   "/completed" :completed
                   :all)
         root (assoc-in todo/app [:data :showing] showing)]
-    (-> root
-        expand-all
-        tree->vdom
-        (vdom/mount "todoapp" [[] :root])
-        browser/render
-        ;pprint
-        )))
+    (browser/render {"todoapp" root})))
 
 (defn on-navigate [token]
   (reset! nav-token token)

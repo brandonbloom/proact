@@ -18,10 +18,13 @@
              (if node (assoc nodes id node) nodes)
              children))))
 
-(defn tree->vdom [x]
+(defn tree->vdom [{:keys [id], mount :dom/mount, :as x}]
   {:post [(vdom/valid? %)]}
-  (let [g (tree->nodes x)]
-    (assoc vdom/null :nodes g :detached #{(:id x)})))
+  (let [g (tree->nodes x)
+        vdom (assoc vdom/null :nodes g :detached #{id})]
+    (if mount
+      (vdom/mount vdom mount id)
+      vdom)))
 
 (comment
 
