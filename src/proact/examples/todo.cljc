@@ -14,30 +14,41 @@
 
 ;;; Event Handlers
 
-(defn on-destroy-click [e]
-  #?(:cljs
-      (prn (browser/path-to (.-target e)))))
+; (defn button-handler [route action context]
+;   (if (= (:event action) :click)
+;     (:command context)
+;     action))
+
+(defn route-event [e]
+  #?(:cljs (when-let [e (browser/route-event e)]
+             (prn 'unhandled e))))
+
+(def delegated-events
+  (into {} (for [event ["onclick"]]
+             [event route-event])))
 
 ;;; Views
 
 (def todo-item
   {:template
    (fn [{{:keys [completed? editing?] :as todo} :data}]
-     (html/li {"className" (classes {"completed" completed?
-                                     "editing" editing?})}
-       (html/div {"className" "view"}
-         (html/input {"className" "toggle"
-                      "type" "checkbox"
-                      ;XXX onChange
-                      "checked" completed?})
-         (html/label {} (:text todo)) ;XXX onDoubleClick
-         (html/button {"className" "destroy"
-                       "onclick" on-destroy-click}))
-       ;;XXX ref editField
-       (html/input {"className" "edit"
-                          ;XXX "value" this.state.editText
-                          ;XXX onBlur, onChange, onKeyDown
-                          })))})
+     (assoc
+       (html/li {"className" (classes {"completed" completed?
+                                       "editing" editing?})}
+         (html/div {"className" "view"}
+           (html/input {"className" "toggle"
+                        "type" "checkbox"
+                        ;XXX onChange
+                        "checked" completed?})
+           (html/label {} (:text todo)) ;XXX onDoubleClick
+           (html/button {"className" "destroy"
+                         #_#_"onclick" on-destroy-click}))
+         ;;XXX ref editField
+         (html/input {"className" "edit"
+                            ;XXX "value" this.state.editText
+                            ;XXX onBlur, onChange, onKeyDown
+                            }))
+       :handler (fn [e] e)))})
 
 ;; Fn syntax is more convenient, but loses some benefits of components...
 (defn filter-link [showing k href content]
@@ -89,7 +100,7 @@
            input (html/input {"id" "new-todo"
                               "placeholder" "What needs to be done?"
                               "autofocus" true})] ;XXX onKeyDown
-       (html/div {}
+       (html/div delegated-events
          (html/header {"id" "header"}
            (html/h1 {} "todos")
            input)

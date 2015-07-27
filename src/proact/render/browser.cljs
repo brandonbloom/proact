@@ -28,7 +28,7 @@
     ;;XXX Right now this is a linear search, but should be
     ;;XXX a hash lookup plus walking parent references.
     ((fn rec [path widget]
-       (let [path (conj path id)]
+       (let [path (conj path widget)]
          (if (= (:id widget) id)
            path
            (->> widget
@@ -37,3 +37,22 @@
                 (filter some?)
                 first))))
      [] @global)))
+
+(defn translate [event]
+  (case (.-type event)
+    "click" :click))
+
+(defn route-event [event]
+  (let [target (.-target event)
+        path (path-to target)
+        translated (translate event)
+        e (reduce (fn [e widget]
+                    (if-let [handler (:handler widget)]
+                      (handler e)
+                      e))
+                  translated
+                  path)]
+    (when (not= e translated)
+      (.stopPropagation event)
+      (.preventDefault event))
+    e))
