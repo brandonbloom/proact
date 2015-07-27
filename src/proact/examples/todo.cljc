@@ -1,5 +1,6 @@
 (ns proact.examples.todo
-  (:require [proact.html :as html]
+  (:require #?(:cljs [proact.render.browser :as browser])
+            [proact.html :as html]
             [proact.html-util :refer [classes link-to]]))
 
 
@@ -15,7 +16,7 @@
 
 (defn on-destroy-click [e]
   #?(:cljs
-      (prn e)))
+      (prn (browser/path-to (.-target e)))))
 
 ;;; Views
 

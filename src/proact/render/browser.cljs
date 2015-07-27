@@ -5,11 +5,15 @@
             [proact.render.dom :refer [tree->vdom]]
             [proact.render.expand :refer [expand-all]]))
 
+;;XXX Right now this is the expanded *tree*, but should be the graph.
+(defonce global (atom nil))
+
 (defn render [mounts]
   (assert (= (count mounts) 1) "TODO: implement multi-root")
-  (let [[mount widget] (first mounts)]
-    (-> widget
-        expand-all
+  (let [[mount widget] (first mounts)
+        expanded (expand-all widget)]
+    (reset! global expanded)
+    (-> expanded
         (assoc :dom/mount mount)
         tree->vdom
         browser/render
@@ -18,3 +22,18 @@
         ;pprint
         )
     nil))
+
+(defn path-to [node]
+  (let [id (browser/identify node)]
+    ;;XXX Right now this is a linear search, but should be
+    ;;XXX a hash lookup plus walking parent references.
+    ((fn rec [path widget]
+       (let [path (conj path id)]
+         (if (= (:id widget) id)
+           path
+           (->> widget
+                :children
+                (map #(rec path %))
+                (filter some?)
+                first))))
+     [] @global)))
