@@ -39,5 +39,5 @@ Distributed under the Eclipse Public License either version 1.0 or (at
 your option) any later version.
 
 
-[0]: ./src/proact/examples/todo.cljs
-[1]: ./src/proact/core.cljs
+[1]: ./src/proact/examples/todo.cljs
+[2]: ./src/proact/core.cljs
