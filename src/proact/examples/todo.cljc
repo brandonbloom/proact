@@ -3,6 +3,7 @@
             [proact.html :as html]
             [proact.html-util :refer [classes link-to]]))
 
+;;; Model
 
 (def mock-todos
   [{:id "todo-1"
@@ -11,6 +12,14 @@
    {:id "todo-2"
     :text "it works!"
     :completed? false}])
+
+(defonce state (atom mock-todos))
+
+(defn destroy-todo [todos id]
+  (vec (remove #(= (:id %) id) todos)))
+
+(defn clear-completed [todos]
+  (vec (remove :completed? todos)))
 
 ;;; Event Handlers
 
@@ -27,16 +36,19 @@
     command
     e))
 
+(defn raise! [& args]
+  (apply swap! state args)
+  nil)
+
 (defn head [e]
   (if (vector? e)
     (first e)
     e))
 
 (defn root-handler [_ e]
-  (prn 'root-handler (head e))
   (case (head e)
-    :todo/destroy (prn "destroying")
-    :todo/clear-completed (prn "clearing")
+    :todo/destroy (raise! destroy-todo (second e))
+    :todo/clear-completed (raise! clear-completed)
     e))
 
 ;;; Views
