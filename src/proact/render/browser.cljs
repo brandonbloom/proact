@@ -48,10 +48,10 @@
         translated (translate event)
         e (reduce (fn [e widget]
                     (if-let [handler (:handler widget)]
-                      (handler e)
+                      (handler widget e)
                       e))
                   translated
-                  path)]
+                  (reverse path))]
     (when (not= e translated)
       (.stopPropagation event)
       (.preventDefault event))
