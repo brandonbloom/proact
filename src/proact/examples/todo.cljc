@@ -15,6 +15,11 @@
 
 (defonce state (atom mock-todos))
 
+(defn add-todo [todos text]
+  (conj todos {:id (str (gensym "todo_"))
+               :text text
+               :completed? false}))
+
 (defn destroy-todo [todos id]
   (vec (remove #(= (:id %) id) todos)))
 
@@ -35,7 +40,7 @@
              (prn 'unhandled e))))
 
 (def delegated-events
-  (into {} (for [event ["onclick" "onchange"]]
+  (into {} (for [event ["onclick" "onchange" "onkeydown"]]
              [event route-event])))
 
 ;;XXX maybe always encode events as vectors or maps? probably maps.
@@ -60,13 +65,19 @@
     :todo/destroy (raise! destroy-todo (second e))
     :todo/clear-completed (raise! clear-completed)
     :todo/set-completed (apply raise! set-completed (next e))
+    :todo/add-todo (raise! add-todo (second e))
+    e))
+
+(defn new-handler [_ e]
+  (case (head e)
+    :key-down (if (= (:key-code (second e)) 13)
+                [:todo/add-todo "omg"] ;XXX need text from widget somehow
+                e)
     e))
 
 (defn todo-handler [widget e]
   (case (head e)
-    :change (do
-              (prn widget)
-              [:todo/set-completed (-> widget :data :id) (:checked? (second e))])
+    :change [:todo/set-completed (-> widget :data :id) (:checked? (second e))]
     e))
 
 ;;; Views
@@ -142,9 +153,10 @@
                                  ;;XXX onChange, checked
                                  "checked" (zero? active)})
                     (html/ul {"id" "todo-list"} items)))
-           input (html/input {"id" "new-todo"
-                              "placeholder" "What needs to be done?"
-                              "autofocus" true})] ;XXX onKeyDown
+           input (assoc (html/input {"id" "new-todo"
+                                     "placeholder" "What needs to be done?"
+                                     "autofocus" true})
+                        :handler new-handler)]
        (html/div delegated-events
          (html/header {"id" "header"}
            (html/h1 {} "todos")
