@@ -40,7 +40,8 @@
 
 (defn translate [event]
   (case (.-type event)
-    "click" :click))
+    "click" [:click]
+    "change" [:change {:checked? (.. event -target -checked)}]))
 
 (defn route-event [event]
   (let [target (.-target event)

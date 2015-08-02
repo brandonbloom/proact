@@ -21,6 +21,13 @@
 (defn clear-completed [todos]
   (vec (remove :completed? todos)))
 
+(defn set-completed [todos id value]
+  (mapv (fn [todo]
+          (if (= (:id todo) id)
+            (assoc todo :completed? value)
+            todo))
+        todos))
+
 ;;; Event Handlers
 
 (defn route-event [e]
@@ -28,11 +35,17 @@
              (prn 'unhandled e))))
 
 (def delegated-events
-  (into {} (for [event ["onclick"]]
+  (into {} (for [event ["onclick" "onchange"]]
              [event route-event])))
 
+;;XXX maybe always encode events as vectors or maps? probably maps.
+(defn head [e]
+  (if (vector? e)
+    (first e)
+    e))
+
 (defn button-handler [{:keys [command]} e]
-  (if (= e :click)
+  (if (= (head e) :click)
     command
     e))
 
@@ -40,15 +53,20 @@
   (apply swap! state args)
   nil)
 
-(defn head [e]
-  (if (vector? e)
-    (first e)
-    e))
+;;XXX These handlers desperately need pattern matching.
 
-(defn root-handler [_ e]
+(defn app-handler [_ e]
   (case (head e)
     :todo/destroy (raise! destroy-todo (second e))
     :todo/clear-completed (raise! clear-completed)
+    :todo/set-completed (apply raise! set-completed (next e))
+    e))
+
+(defn todo-handler [widget e]
+  (case (head e)
+    :change (do
+              (prn widget)
+              [:todo/set-completed (-> widget :data :id) (:checked? (second e))])
     e))
 
 ;;; Views
@@ -57,7 +75,8 @@
   (assoc content :command command :handler button-handler))
 
 (def todo-item
-  {:template
+  {:handler todo-handler
+   :template
    (fn [{{:keys [completed? editing?] :as todo} :data}]
      (html/li {"className" (classes {"completed" completed?
                                      "editing" editing?})}
@@ -101,6 +120,7 @@
 
 (def app
   {:data {:todos mock-todos :showing :all}
+   :handler app-handler
    :template
    (fn [{{:keys [todos showing]} :data}]
      (let [items (for [{:keys [id completed?] :as todo} todos
@@ -112,7 +132,6 @@
                    (assoc todo-item :key id :data todo))
            completed (count (filter :completed? todos))
            active (- (count todos) completed)
-           ;XXX footer onClearCompleted
            footer (assoc todo-footer :data {:active active
                                             :completed completed
                                             :showing showing})
@@ -126,11 +145,9 @@
            input (html/input {"id" "new-todo"
                               "placeholder" "What needs to be done?"
                               "autofocus" true})] ;XXX onKeyDown
-       (assoc
-         (html/div delegated-events
-           (html/header {"id" "header"}
-             (html/h1 {} "todos")
-             input)
-           main
-           footer)
-         :handler root-handler)))})
+       (html/div delegated-events
+         (html/header {"id" "header"}
+           (html/h1 {} "todos")
+           input)
+         main
+         footer)))})
