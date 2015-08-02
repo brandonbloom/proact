@@ -14,7 +14,7 @@
         expanded (expand-all widget)]
     (reset! global expanded)
     (-> expanded
-        (assoc :dom/mount mount)
+        (assoc-in [:children 0 :dom/mount] mount) ;XXX hack
         tree->vdom
         browser/render
         ;(select-keys [:trace #_#_ :created :destroyed])

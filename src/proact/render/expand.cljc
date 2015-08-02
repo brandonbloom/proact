@@ -37,8 +37,9 @@
 
 (defn expand [widget]
   (let [widget (-> widget normalize assign-indexes assign-ids)]
-    (if-let [widget (render-template widget)]
-      (recur widget)
+    (if-let [rendered (render-template widget)]
+      (merge (select-keys widget [:data :handler])
+             {:children [(expand rendered)]})
       widget)))
 
 (defn expand-all [widget]
