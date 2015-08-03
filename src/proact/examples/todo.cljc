@@ -82,8 +82,8 @@
 
 ;;; Views
 
-(defn button [command content]
-  (assoc content :command command :handler button-handler))
+(def button {:handler button-handler
+             :command :press})
 
 (def todo-item
   ;; onToggle, onDestroy, onEdit, editing, onSave, onCancel
@@ -98,8 +98,9 @@
                       ;XXX onChange
                       "checked" completed?})
          (html/label {} (:text todo)) ;XXX onDoubleClick
-         (button [:todo/destroy (:id todo)]
-           (html/button {"className" "destroy"})))
+         (assoc (html/button {"className" "destroy"})
+                :prototype button
+                :command [:todo/destroy (:id todo)]))
        ;;XXX ref editField
        (html/input {"className" "edit"
                           ;XXX "value" this.state.editText
@@ -126,9 +127,10 @@
          (filter-link showing :active "#/active" "Active")
          (filter-link showing :completed "#/completed" "Completed"))
        (when (pos? completed)
-         (button :todo/clear-completed
-           (html/button {"id" "clear-completed"}
-             "Clear completed")))))})
+         (assoc (html/button {"id" "clear-completed"}
+                             "Clear completed")
+                :prototype button
+                :command :todo/clear-completed))))})
 
 (def app
   {:data {:todos mock-todos :showing :all}

@@ -7,6 +7,9 @@
     (map? widget) (update widget :children #(mapv normalize (flat %)))
     :else (throw (ex-info "Unsupported widget type." {:class (type widget)}))))
 
+(defn inherit-prototype [widget]
+  (merge (:prototype widget) (dissoc widget :prototype)))
+
 (defn assign-indexes [widget]
   (update widget :children #(mapv (fn [child i]
                                     (-> child
@@ -30,7 +33,7 @@
 (defn link-children [widget]
   (update widget :children #(mapv :id %)))
 
-(def default-prototype
+(def default-item-prototype
   {:template
    (fn [x]
      {:dom/tag :text ;XXX
@@ -39,7 +42,7 @@
 (defn render-items [widget]
   (let [filt (:item-filter widget (constantly true))]
     (if-let [items (->> widget :items (filter filt) seq)]
-      (let [proto (:item-prototype widget default-prototype)]
+      (let [proto (:item-prototype widget default-item-prototype)]
         (assoc widget :children (mapv #(assoc proto :data %) items)))
       widget)))
 
@@ -49,7 +52,12 @@
            (select-keys widget [:child-index :id :key :scope]))))
 
 (defn expand [widget]
-  (let [widget (-> widget normalize render-items assign-indexes assign-ids)]
+  (let [widget (-> widget
+                   normalize
+                   inherit-prototype
+                   render-items
+                   assign-indexes
+                   assign-ids)]
     (if-let [rendered (render-template widget)]
       (merge (select-keys widget [:data :handler])
              {:children [(expand rendered)]})
