@@ -30,13 +30,29 @@
 (defn link-children [widget]
   (update widget :children #(mapv :id %)))
 
+(def default-prototype
+  {:template
+   (fn [x]
+     {:dom/tag :text ;XXX
+      :text (pr-str (:data x))})})
+
+(defn render-items [widget]
+  (if-let [items (:items widget)]
+    (let [proto (:item-prototype widget default-prototype)
+          filt (:item-filter widget (constantly true))]
+      (->> items
+           (filter filt)
+           (mapv #(assoc proto :data %))
+           (assoc widget :children)))
+    widget))
+
 (defn render-template [widget]
   (when-let [template (:template widget)]
     (merge (template widget)
            (select-keys widget [:child-index :id :key :scope]))))
 
 (defn expand [widget]
-  (let [widget (-> widget normalize assign-indexes assign-ids)]
+  (let [widget (-> widget normalize render-items assign-indexes assign-ids)]
     (if-let [rendered (render-template widget)]
       (merge (select-keys widget [:data :handler])
              {:children [(expand rendered)]})

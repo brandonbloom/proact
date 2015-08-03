@@ -86,6 +86,7 @@
   (assoc content :command command :handler button-handler))
 
 (def todo-item
+  ;; onToggle, onDestroy, onEdit, editing, onSave, onCancel
   {:handler todo-handler
    :template
    (fn [{{:keys [completed? editing?] :as todo} :data}]
@@ -134,14 +135,7 @@
    :handler app-handler
    :template
    (fn [{{:keys [todos showing]} :data}]
-     (let [items (for [{:keys [id completed?] :as todo} todos
-                       :when (case showing
-                               :active (not completed?)
-                               :completed completed?
-                               true)]
-                   ;; onToggle, onDestroy, onEdit, editing, onSave, onCancel
-                   (assoc todo-item :key id :data todo))
-           completed (count (filter :completed? todos))
+     (let [completed (count (filter :completed? todos))
            active (- (count todos) completed)
            footer (assoc todo-footer :data {:active active
                                             :completed completed
@@ -152,7 +146,14 @@
                                  "type" "checkbox"
                                  ;;XXX onChange, checked
                                  "checked" (zero? active)})
-                    (html/ul {"id" "todo-list"} items)))
+                    (assoc (html/ul {"id" "todo-list"})
+                           :item-prototype todo-item
+                           :item-filter (fn [{:keys [completed?]}]
+                                          (case showing
+                                            :active (not completed?)
+                                            :completed completed?
+                                            true))
+                           :items todos)))
            input (assoc (html/input {"id" "new-todo"
                                      "placeholder" "What needs to be done?"
                                      "autofocus" true})

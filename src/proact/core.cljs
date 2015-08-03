@@ -18,6 +18,7 @@
         root (assoc todo/app :data {:todos @todo/state :showing showing})]
     (browser/render {"todoapp" root})))
 
+;;XXX set flag & timeout to re-render *just once*
 (defonce watch (add-watch todo/state ::render (fn [& _] (render))))
 
 (defn on-navigate [token]
