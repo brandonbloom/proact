@@ -37,14 +37,11 @@
       :text (pr-str (:data x))})})
 
 (defn render-items [widget]
-  (if-let [items (:items widget)]
-    (let [proto (:item-prototype widget default-prototype)
-          filt (:item-filter widget (constantly true))]
-      (->> items
-           (filter filt)
-           (mapv #(assoc proto :data %))
-           (assoc widget :children)))
-    widget))
+  (let [filt (:item-filter widget (constantly true))]
+    (if-let [items (->> widget :items (filter filt) seq)]
+      (let [proto (:item-prototype widget default-prototype)]
+        (assoc widget :children (mapv #(assoc proto :data %) items)))
+      widget)))
 
 (defn render-template [widget]
   (when-let [template (:template widget)]
