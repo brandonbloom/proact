@@ -15,6 +15,8 @@ of the existing platforms exactly meet my criteria.
 
 Watch this space or Twitter for updates, including motivation and design notes.
 
+I've written some initial thoughts on [design principles][3].
+
 ## Usage
 
 Don't. At least not yet.
@@ -41,3 +43,4 @@ your option) any later version.
 
 [1]: ./src/proact/examples/todo.cljc
 [2]: ./src/proact/core.cljs
+[3]: ./doc/principles.md
