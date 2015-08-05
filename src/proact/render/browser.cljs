@@ -42,7 +42,7 @@
   (case (.-type event)
     "click" [:click]
     "change" [:change {:checked? (.. event -target -checked)}]
-    "keydown" [:key-down {:key-code (.-keyCode event)}]))
+    "keydown" [:key-down (.-keyCode event)]))
 
 (defn route-event [event]
   (let [target (.-target event)

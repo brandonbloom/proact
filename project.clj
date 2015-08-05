@@ -7,12 +7,13 @@
   :dependencies [[org.clojure/clojure "1.7.0"]
                  [org.clojure/clojurescript "0.0-3269"]
                  [org.clojure/core.rrb-vector "0.0.11"]
+                 [org.clojure/core.match "0.3.0-alpha4"]
                  [bbloom.vdom "0.0.2"]]
 
   :plugins [[lein-cljsbuild "1.0.5"]
             [lein-figwheel "0.3.3"]]
 
-  :jvm-opts ["-Xmx1g" "-server"]
+  :jvm-opts ["-Xms1g" "-Xmx2g" "-server"]
 
   :source-paths ["src"]
 

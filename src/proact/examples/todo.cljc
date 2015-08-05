@@ -1,7 +1,10 @@
 (ns proact.examples.todo
-  (:require #?(:cljs [proact.render.browser :as browser])
-            [proact.html :as html]
-            [proact.html-util :refer [classes link-to]]))
+  (:require
+    #?(:clj [clojure.core.match :refer [match]])
+    #?(:cljs [cljs.core.match :refer-macros [match]])
+    #?(:cljs [proact.render.browser :as browser])
+    [proact.html :as html]
+    [proact.html-util :refer [classes link-to]]))
 
 ;;; Model
 
@@ -43,16 +46,10 @@
   (into {} (for [event ["onclick" "onchange" "onkeydown"]]
              [event route-event])))
 
-;;XXX maybe always encode events as vectors or maps? probably maps.
-(defn head [e]
-  (if (vector? e)
-    (first e)
-    e))
-
-(defn button-handler [{:keys [command]} e]
-  (if (= (head e) :click)
-    command
-    e))
+(defn button-handler [widget e]
+  (match [e]
+    [[:click]] (:command widget)
+    :else e))
 
 (defn raise! [& args]
   (apply swap! state args)
@@ -61,29 +58,29 @@
 ;;XXX These handlers desperately need pattern matching.
 
 (defn app-handler [_ e]
-  (case (head e)
-    :todo/destroy (raise! destroy-todo (second e))
-    :todo/clear-completed (raise! clear-completed)
-    :todo/set-completed (apply raise! set-completed (next e))
-    :todo/add-todo (raise! add-todo (second e))
+  (if-let [f (case (first e)
+               :todo/destroy-todo destroy-todo
+               :todo/clear-completed clear-completed
+               :todo/set-completed set-completed
+               :todo/add-todo add-todo
+               nil)]
+    (apply raise! f (next e))
     e))
 
 (defn new-handler [_ e]
-  (case (head e)
-    :key-down (if (= (:key-code (second e)) 13)
-                [:todo/add-todo "omg"] ;XXX need text from widget somehow
-                e)
-    e))
+  (match [e]
+    [[:key-down 13]] [:todo/add-todo "omg"] ;XXX need text from widget somehow
+    :else e))
 
 (defn todo-handler [widget e]
-  (case (head e)
+  (case (first e)
     :change [:todo/set-completed (-> widget :data :id) (:checked? (second e))]
     e))
 
 ;;; Views
 
 (def button {:handler button-handler
-             :command :press})
+             :command [:press]})
 
 (def todo-item
   ;; onToggle, onDestroy, onEdit, editing, onSave, onCancel
@@ -100,7 +97,7 @@
          (html/label {} (:text todo)) ;XXX onDoubleClick
          (assoc (html/button {"className" "destroy"})
                 :prototype button
-                :command [:todo/destroy (:id todo)]))
+                :command [:todo/destroy-todo (:id todo)]))
        ;;XXX ref editField
        (html/input {"className" "edit"
                           ;XXX "value" this.state.editText
@@ -130,7 +127,7 @@
          (assoc (html/button {"id" "clear-completed"}
                              "Clear completed")
                 :prototype button
-                :command :todo/clear-completed))))})
+                :command [:todo/clear-completed]))))})
 
 (def app
   {:data {:todos mock-todos :showing :all}
