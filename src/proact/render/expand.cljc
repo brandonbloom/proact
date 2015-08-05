@@ -1,5 +1,6 @@
 (ns proact.render.expand
-  (:require [proact.util :refer [flat]]))
+  (:require [proact.util :refer [flat]]
+            [proact.render.state :as state]))
 
 (defn normalize [widget]
   (cond
@@ -46,10 +47,13 @@
         (assoc widget :children (mapv #(assoc proto :data %) items)))
       widget)))
 
+(defn load-state [{:keys [id] :as widget}]
+  (update widget :state merge (state/get id)))
+
 (defn render-template [widget]
   (when-let [template (:template widget)]
     (merge (template widget)
-           (select-keys widget [:child-index :id :key :scope]))))
+           (select-keys widget [:child-index :key :scope]))))
 
 (defn expand [widget]
   (let [widget (-> widget
@@ -57,9 +61,10 @@
                    inherit-prototype
                    render-items
                    assign-indexes
-                   assign-ids)]
+                   assign-ids
+                   load-state)]
     (if-let [rendered (render-template widget)]
-      (merge (select-keys widget [:data :handler])
+      (merge (select-keys widget [:id :data :handler])
              {:children [(expand rendered)]})
       widget)))
 
@@ -68,7 +73,7 @@
       expand
       (update :children #(mapv expand-all %))))
 
-;;; Graph stuff?
+;;;TODO Implement graph representation, incremental, and life cycles.
 
 (defn add-widget [graph widget]
   (assoc graph (:id widget) widget))

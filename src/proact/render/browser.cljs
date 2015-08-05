@@ -41,6 +41,7 @@
 (defn translate [event]
   (case (.-type event)
     "click" [:click]
+    "dblclick" [:double-click]
     "change" [:change {:checked? (.. event -target -checked)}]
     "keydown" [:key-down (.-keyCode event)]))
 
@@ -57,4 +58,16 @@
     (when (not= e translated)
       (.stopPropagation event)
       (.preventDefault event))
-    e))
+    (when e
+      (prn 'unhandled e))))
+
+(def events [
+  "onclick"
+  "ondblclick"
+  "onchange"
+  "onkeydown"
+])
+
+(def delegates
+  (into {} (for [event events]
+             [event route-event])))

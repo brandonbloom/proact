@@ -3,6 +3,7 @@
     #?(:clj [clojure.core.match :refer [match]])
     #?(:cljs [cljs.core.match :refer-macros [match]])
     #?(:cljs [proact.render.browser :as browser])
+    [proact.render.state :as state]
     [proact.html :as html]
     [proact.html-util :refer [classes link-to]]))
 
@@ -38,14 +39,6 @@
 
 ;;; Event Handlers
 
-(defn route-event [e]
-  #?(:cljs (when-let [e (browser/route-event e)]
-             (prn 'unhandled e))))
-
-(def delegated-events
-  (into {} (for [event ["onclick" "onchange" "onkeydown"]]
-             [event route-event])))
-
 (defn button-handler [widget e]
   (match [e]
     [[:click]] (:command widget)
@@ -55,17 +48,19 @@
   (apply swap! state args)
   nil)
 
-;;XXX These handlers desperately need pattern matching.
+;;XXX temporary hack to trigger re-render.
+(defn put-state! [& args]
+  (apply state/put! args)
+  (raise! update-in [0 :x] (fnil inc 0)))
 
-(defn app-handler [_ e]
-  (if-let [f (case (first e)
-               :todo/destroy-todo destroy-todo
-               :todo/clear-completed clear-completed
-               :todo/set-completed set-completed
-               :todo/add-todo add-todo
-               nil)]
-    (apply raise! f (next e))
-    e))
+(defn app-handler [widget e]
+  (match [e]
+    [[:todo/destroy-todo id]] (raise! destroy-todo id)
+    [[:todo/clear-completed]] (raise! clear-completed)
+    [[:todo/set-completed id value]] (raise! set-completed id value)
+    [[:todo/add-todo text]] (raise! add-todo text)
+    [[:todo/edit id]] (put-state! (:id widget) {:editing id})
+    :else e))
 
 (defn new-handler [_ e]
   (match [e]
@@ -75,6 +70,7 @@
 (defn todo-handler [widget e]
   (case (first e)
     :change [:todo/set-completed (-> widget :data :id) (:checked? (second e))]
+    :double-click [:todo/edit (-> widget :data :id)]
     e))
 
 ;;; Views
@@ -131,14 +127,17 @@
 
 (def app
   {:data {:todos mock-todos :showing :all}
+   :state {:editing "todo-1"}
    :handler app-handler
    :template
-   (fn [{{:keys [todos showing]} :data}]
+   (fn [{{:keys [todos showing]} :data
+         {:keys [editing]} :state}]
      (let [completed (count (filter :completed? todos))
            active (- (count todos) completed)
            footer (assoc todo-footer :data {:active active
                                             :completed completed
                                             :showing showing})
+           todos (map #(assoc % :editing? (= (:id %) editing)) todos)
            main (when (seq todos)
                   (html/section {"id" "main"}
                     (html/input {"id" "toggle-all"
@@ -157,7 +156,8 @@
                                      "placeholder" "What needs to be done?"
                                      "autofocus" true})
                         :handler new-handler)]
-       (html/div delegated-events
+       (html/div #?(:cljs browser/delegates
+                    :clj {})
          (html/header {"id" "header"}
            (html/h1 {} "todos")
            input)

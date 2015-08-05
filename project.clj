@@ -13,7 +13,7 @@
   :plugins [[lein-cljsbuild "1.0.5"]
             [lein-figwheel "0.3.3"]]
 
-  :jvm-opts ["-Xms1g" "-Xmx2g" "-server"]
+  :jvm-opts ^:replace ["-Xms1g" "-Xmx2g" "-server"]
 
   :source-paths ["src"]
 
