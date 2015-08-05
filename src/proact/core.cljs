@@ -1,7 +1,6 @@
 (ns ^:figwheel-always proact.core
   (:require [proact.examples.todo :as todo]
             [proact.render.browser :as browser]
-            [goog]
             [goog.events :as gevents]
             [goog.history.EventType :as ghistory])
   (:import [goog History]))
