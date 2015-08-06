@@ -8,8 +8,23 @@
     (map? widget) (update widget :children #(mapv normalize (flat %)))
     :else (throw (ex-info "Unsupported widget type." {:class (type widget)}))))
 
+(defn deep-merge [x y]
+  (reduce (fn [m [k v]]
+            (if (map? v)
+              (update m k merge v)
+              (assoc m k v)))
+          x, y))
+
+(defn merge-prop [widget [k v]]
+  (let [f (case k
+            :data merge
+            :state merge
+            :dom/props deep-merge
+            (fn [x y] y))]
+    (update widget k f v)))
+
 (defn inherit-prototype [widget]
-  (merge (:prototype widget) (dissoc widget :prototype)))
+  (reduce merge-prop (:prototype widget) (dissoc widget :prototype)))
 
 (defn assign-indexes [widget]
   (update widget :children #(mapv (fn [child i]
