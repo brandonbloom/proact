@@ -59,7 +59,7 @@
   (let [filt (:item-filter widget (constantly true))]
     (if-let [items (->> widget :items (filter filt) seq)]
       (let [proto (:item-prototype widget default-item-prototype)]
-        (assoc widget :children (mapv #(assoc proto :data %) items)))
+        (assoc widget :children (mapv #(assoc proto :item %) items)))
       widget)))
 
 (defn load-state [{:keys [id] :as widget}]

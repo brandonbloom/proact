@@ -4,6 +4,7 @@
     #?(:cljs [cljs.core.match :refer-macros [match]])
     #?(:cljs [proact.render.browser :as browser])
     [proact.render.state :as state]
+    [proact.widgets.controls :as ctrl]
     [proact.html :as html]
     [proact.html-util :refer [classes link-to]]))
 
@@ -39,11 +40,6 @@
 
 ;;; Event Handlers
 
-(defn button-handler [widget e]
-  (match [e]
-    [[:click]] (:command widget)
-    :else e))
-
 (defn raise! [& args]
   (apply swap! state args)
   nil)
@@ -75,14 +71,11 @@
 
 ;;; Views
 
-(def button {:handler button-handler
-             :command [:press]})
-
 (def todo-item
   ;; onToggle, onDestroy, onEdit, editing, onSave, onCancel
   {:handler todo-handler
    :template
-   (fn [{{:keys [completed? editing?] :as todo} :data}]
+   (fn [{{:keys [completed? editing?] :as todo} :item}]
      (html/li {"className" (classes {"completed" completed?
                                      "editing" editing?})}
        (html/div {"className" "view"}
@@ -92,7 +85,7 @@
                       "checked" completed?})
          (html/label {} (:text todo)) ;XXX onDoubleClick
          (assoc (html/button {"className" "destroy"})
-                :prototype button
+                :prototype ctrl/button
                 :command [:todo/destroy-todo (:id todo)]))
        ;;XXX ref editField
        (html/input {"className" "edit"
@@ -122,12 +115,12 @@
        (when (pos? completed)
          (assoc (html/button {"id" "clear-completed"}
                              "Clear completed")
-                :prototype button
+                :prototype ctrl/button
                 :command [:todo/clear-completed]))))})
 
 (def app
   {:data {:todos mock-todos :showing :all}
-   :state {:editing "todo-1"}
+   :state {:editing nil}
    :handler app-handler
    :template
    (fn [{{:keys [todos showing]} :data
