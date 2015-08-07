@@ -16,12 +16,9 @@
                   "/completed" :completed
                   :all)
         root (assoc todo/app :data {:todos @todo/state :showing showing})
-        ;root {:dom/tag "div"
-        ;      :dom/mount "tools"
-        ;      :children [(assoc tools/tree-view
-        ;                        :item {:foo [:a :b] :bar "c"})]}
-        ]
-    (browser/render {"todoapp" root})))
+        root (assoc tools/designer :data {:widget root})
+        root {:dom/tag "div" :dom/mount "root" :children [root]}]
+    (browser/render root)))
 
 ;;XXX set flag & timeout to re-render *just once*
 (defonce watch (add-watch todo/state ::render (fn [& _] (render))))

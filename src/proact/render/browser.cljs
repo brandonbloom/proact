@@ -8,10 +8,8 @@
 ;;XXX Right now this is the expanded *tree*, but should be the graph.
 (defonce global (atom nil))
 
-(defn render [mounts]
-  (assert (= (count mounts) 1) "TODO: implement multi-root")
-  (let [[mount widget] (first mounts)
-        expanded (expand-all widget)]
+(defn render [widget]
+  (let [expanded (expand-all widget)]
     (reset! global expanded)
     (-> expanded
         tree->vdom

@@ -2,9 +2,6 @@
   (:require [proact.html :as html] ;XXX
             [proact.widgets.layout :as layout]))
 
-(def designer
-  )
-
 (declare tree-view)
 
 (def entry-view
@@ -38,7 +35,9 @@
   {:template
    (fn [{:keys [item]}]
      (html/div {"style" {"font-style" "italic"}}
-       (pr-str item)))})
+       (cond
+         (fn? item) "#<fn>"
+         :else (pr-str item))))})
 
 (def tree-view
   {:template
@@ -51,3 +50,10 @@
                 (map? item) map-view
                 :else scalar-view)
               :item item)]})})
+
+(def designer
+  {:template
+   (fn [{{:keys [widget]} :data}]
+     {:prototype layout/row
+      :children [(assoc tree-view :item widget)
+                 widget]})})
