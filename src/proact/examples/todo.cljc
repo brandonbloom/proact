@@ -149,10 +149,11 @@
                                      "placeholder" "What needs to be done?"
                                      "autofocus" true})
                         :handler new-handler)]
-       (html/div #?(:cljs browser/delegates
-                    :clj {})
-         (html/header {"id" "header"}
-           (html/h1 {} "todos")
-           input)
-         main
-         footer)))})
+       (assoc (html/div #?(:cljs browser/delegates
+                           :clj {})
+                (html/header {"id" "header"}
+                  (html/h1 {} "todos")
+                  input)
+                main
+                footer)
+              :dom/mount "todoapp")))})
