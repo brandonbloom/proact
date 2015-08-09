@@ -1,5 +1,6 @@
 (ns proact.widgets.tools
   (:require [proact.html :as html] ;XXX
+            [proact.widgets.controls :as ctrl]
             [proact.widgets.layout :as layout]))
 
 (declare tree-view)
@@ -12,6 +13,9 @@
       [(html/div {"style" {"font-weight" "bold"
                            "padding-left" "5px"
                            "border-left" "2px solid red"}}
+         (assoc ctrl/toggle
+                :template (fn [widget]
+                            (html/div {} (pr-str (:state widget)))))
          (pr-str k))
        (assoc tree-view :item v)]})})
 

@@ -1,6 +1,7 @@
 (ns ^:figwheel-always proact.core
   (:require [proact.examples.todo :as todo]
             [proact.widgets.tools :as tools]
+            [proact.render.loop :as loop]
             [proact.render.browser :as browser]
             [goog.events :as gevents]
             [goog.history.EventType :as ghistory])
@@ -17,11 +18,13 @@
                   :all)
         root (assoc todo/app :data {:todos @todo/state :showing showing})
         root (assoc tools/designer :data {:widget root})
-        root {:dom/tag "div" :dom/mount "root" :children [root]}]
+        root {:dom/tag "div"
+              :dom/props browser/delegates
+              :dom/mount "root"
+              :children [root]}]
     (browser/render root)))
 
-;;XXX set flag & timeout to re-render *just once*
-(defonce watch (add-watch todo/state ::render (fn [& _] (render))))
+(defonce watch (loop/add-listener ::watch (fn [& _] (render))))
 
 (defn on-navigate [token]
   (reset! nav-token token)

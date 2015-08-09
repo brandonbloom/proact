@@ -2,9 +2,10 @@
   (:require
     #?(:clj [clojure.core.match :refer [match]])
     #?(:cljs [cljs.core.match :refer-macros [match]])
-    #?(:cljs [proact.render.browser :as browser])
+    [proact.render.loop :as loop]
     [proact.render.state :as state]
     [proact.widgets.controls :as ctrl]
+    #?(:cljs [proact.render.browser :as browser])
     [proact.html :as html]
     [proact.html-util :refer [classes link-to]]))
 
@@ -18,7 +19,8 @@
     :text "it works!"
     :completed? false}])
 
-(defonce state (atom mock-todos))
+(defonce state
+  (add-watch (atom mock-todos) ::watch (fn [& _] (loop/trigger!))))
 
 (defn add-todo [todos text]
   (conj todos {:id (str (gensym "todo_"))
@@ -44,18 +46,13 @@
   (apply swap! state args)
   nil)
 
-;;XXX temporary hack to trigger re-render.
-(defn put-state! [& args]
-  (apply state/put! args)
-  (raise! update-in [0 :x] (fnil inc 0)))
-
 (defn app-handler [widget e]
   (match [e]
     [[:todo/destroy-todo id]] (raise! destroy-todo id)
     [[:todo/clear-completed]] (raise! clear-completed)
     [[:todo/set-completed id value]] (raise! set-completed id value)
     [[:todo/add-todo text]] (raise! add-todo text)
-    [[:todo/edit id]] (put-state! (:id widget) {:editing id})
+    [[:todo/edit id]] (state/put! (:id widget) {:editing id})
     :else e))
 
 (defn new-handler [_ e]
@@ -149,9 +146,7 @@
                                      "placeholder" "What needs to be done?"
                                      "autofocus" true})
                         :handler new-handler)]
-       (html/div (merge {"id" "todoapp"}
-                        #?(:cljs browser/delegates
-                           :clj {}))
+       (html/div {"id" "todoapp"}
          (html/header {"id" "header"}
            (html/h1 {} "todos")
            input)

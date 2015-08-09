@@ -3,7 +3,8 @@
             [bbloom.vdom.core :as vdom]
             [bbloom.vdom.browser :as browser]
             [proact.render.dom :refer [tree->vdom]]
-            [proact.render.expand :refer [expand-all]]))
+            [proact.render.expand :refer [expand-all]]
+            [proact.render.state :as state]))
 
 ;;XXX Right now this is the expanded *tree*, but should be the graph.
 (defonce global (atom nil))

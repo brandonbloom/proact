@@ -62,8 +62,8 @@
         (assoc widget :children (mapv #(assoc proto :item %) items)))
       widget)))
 
-(defn load-state [{:keys [id] :as widget}]
-  (update widget :state merge (state/get id)))
+(defn load-state [{:keys [id state] :as widget}]
+  (update widget :state merge (state/init! id state)))
 
 (defn render-template [widget]
   (when-let [template (:template widget)]
@@ -79,7 +79,7 @@
                    assign-ids
                    load-state)]
     (if-let [rendered (render-template widget)]
-      (merge (select-keys widget [:id :data :handler])
+      (merge (select-keys widget [:id :data :state :handler])
              {:children [(expand rendered)]})
       widget)))
 
