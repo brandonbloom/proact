@@ -34,10 +34,15 @@
 (def scalar-view
   {:template
    (fn [{:keys [item]}]
-     (html/div {"style" {"font-style" "italic"}}
-       (cond
-         (fn? item) "#<fn>"
-         :else (pr-str item))))})
+     (html/div {}
+       (let [[color text] (cond
+                            (nil? item) ["orange" "nil"]
+                            (fn? item) ["blue" "#<fn>"]
+                            (string? item) ["maroon" (pr-str item)]
+                            :else ["green" (pr-str item)])]
+         (html/div {"style" {"color" color}}
+           text))
+       ))})
 
 (def tree-view
   {:template
