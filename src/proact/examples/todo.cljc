@@ -62,8 +62,8 @@
 
 (defn todo-handler [widget e]
   (case (first e)
-    :change [:todo/set-completed (-> widget :data :id) (:checked? (second e))]
-    :double-click [:todo/edit (-> widget :data :id)]
+    :change [:todo/set-completed (-> widget :item :id) (:checked? (second e))]
+    :double-click [:todo/edit (-> widget :item :id)]
     e))
 
 ;;; Views

@@ -79,7 +79,7 @@
                    assign-ids
                    load-state)]
     (if-let [rendered (render-template widget)]
-      (merge (select-keys widget [:id :data :state :handler])
+      (merge (select-keys widget [:id :data :item :state :handler])
              {:children [(expand rendered)]})
       widget)))
 
