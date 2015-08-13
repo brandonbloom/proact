@@ -41,8 +41,9 @@
      (html/div {}
        (let [[color text] (cond
                             (nil? item) ["orange" "nil"]
-                            (fn? item) ["blue" "#<fn>"]
-                            (string? item) ["maroon" (pr-str item)]
+                            (fn? item) ["purple" "#<fn>"]
+                            (string? item) ["blue" (pr-str item)]
+                            (keyword? item) ["maroon" (pr-str item)]
                             :else ["green" (pr-str item)])]
          (html/div {"style" {"color" color}}
            text))
